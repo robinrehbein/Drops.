@@ -69,7 +69,7 @@ data class ServerConfig(
     val smtp: SmtpConfig? = null,
     /** Service account JSON for the Play Developer API; enables purchase checks. */
     val playServiceAccountJson: String? = null,
-    val playPackageName: String = "de.birneklub.drops",
+    val playPackageName: String = "de.robinrehbein.drops",
 ) {
     companion object {
         fun fromEnv(env: Map<String, String> = System.getenv()) = ServerConfig(
@@ -82,7 +82,7 @@ data class ServerConfig(
             publicUrl = env["PUBLIC_URL"]?.trimEnd('/')?.takeIf { it.startsWith("https://") || it.startsWith("http://") },
             androidCertSha256 = env["ANDROID_CERT_SHA256"].orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() },
             playServiceAccountJson = env["PLAY_SERVICE_ACCOUNT_JSON"]?.takeIf { it.contains("private_key") },
-            playPackageName = env["PLAY_PACKAGE_NAME"] ?: "de.birneklub.drops",
+            playPackageName = env["PLAY_PACKAGE_NAME"] ?: "de.robinrehbein.drops",
             smtp = env["SMTP_HOST"]?.takeIf { it.isNotBlank() }?.let { host ->
                 SmtpConfig(
                     host = host,
