@@ -170,7 +170,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
         }
         Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             TextAction("Impressum", { uri.openUri("https://robinrehbein.de/imprint") }, c.muted)
-            TextAction("Datenschutz", { uri.openUri("https://robinrehbein.github.io/drops./privacy.html") }, c.muted)
+            TextAction("Datenschutz", { uri.openUri("https://drops.robinrehbein.de/datenschutz") }, c.muted)
         }
         Text("Version ${de.birneklub.drop.android.BuildConfig.VERSION_NAME}", style = DropsType.caption.copy(fontFamily = MonoFamily), color = c.muted, modifier = Modifier.align(Alignment.CenterHorizontally))
     }
