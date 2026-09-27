@@ -36,7 +36,7 @@ fun Route.roasterPages(config: ServerConfig) {
     get("/r/{payload}") {
         val card = RoasterCard.decode(call.parameters["payload"].orEmpty())
             ?: return@get call.respondHtml(page("Karte ungültig", "<p>Dieser Code ist beschädigt oder unvollständig.</p>"), HttpStatusCode.NotFound)
-        call.respondHtml(page("${card.coffee} · ${card.roaster}", landing(card)))
+        call.respondHtml(page("${card.coffee} · ${card.roaster}", landing(card, config.playPackageName)))
     }
 
     get("/.well-known/assetlinks.json") {
@@ -44,7 +44,7 @@ fun Route.roasterPages(config: ServerConfig) {
         if (fingerprints.isEmpty()) return@get call.respondText("[]", ContentType.Application.Json, HttpStatusCode.NotFound)
         val list = fingerprints.joinToString(",") { "\"${it}\"" }
         call.respondText(
-            """[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"de.birneklub.drops","sha256_cert_fingerprints":[$list]}}]""",
+            """[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"${config.playPackageName}","sha256_cert_fingerprints":[$list]}}]""",
             ContentType.Application.Json,
         )
     }
@@ -112,11 +112,11 @@ private fun printable(c: RoasterCard, link: String) = """
   <p class=noprint>Drucken (Strg/Cmd + P) und der Tüte beilegen. Der Code enthält das Rezept selbst, es wird nichts gespeichert.<br><a href="${esc(link)}">Vorschau der Scan-Seite</a> · <a href="/roaster">Neue Karte</a></p>
 """
 
-private fun landing(c: RoasterCard) = """
+private fun landing(c: RoasterCard, packageName: String) = """
   <p class=eyebrow>Startrezept von ${esc(c.roaster)}</p>
   <h1>${esc(c.coffee)}</h1>
   ${recipeLines(c)}
-  <p><a class=button href="https://play.google.com/store/apps/details?id=de.birneklub.drops">drops. für Android holen</a></p>
+  <p><a class=button href="https://play.google.com/store/apps/details?id=${esc(packageName)}">drops. für Android holen</a></p>
   <p class=small>Mit installierter App öffnet dieser Link die Bohne direkt in drops. Der Mahlgrad fehlt bewusst: Er hängt von deiner Mühle ab.</p>
   ${c.url?.let { "<p><a href=\"${esc(it)}\">Beim Röster ansehen</a></p>" } ?: ""}
 """
