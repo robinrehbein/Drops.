@@ -121,32 +121,30 @@ without tracking people:
 | Workflow | Trigger | Does |
 | --- | --- | --- |
 | `ci.yml` | every PR and push to `main` | core + server tests, data tests, debug APK artifact |
-| `deploy-server.yml` | push to `main` touching `core/`, `server/` or Gradle files | tests → Docker image `ghcr.io/<owner>/drops-server:latest` + `:sha-…` → Coolify redeploy webhook → waits for `/healthz` |
 | `android-release.yml` | push to `main` touching app code, tags `v*` | tests → signed release APK + AAB (artifacts) → Play internal track (optional) → GitHub Release on tags |
 
 ### One-time setup
 
-**Coolify**
+**Coolify** (builds and deploys the server itself – no GitHub secrets needed)
 
-1. New resource → *Docker Image* → `ghcr.io/robinrehbein/drops-server:latest`, port `8080`.
-   If the package is private, add a GHCR registry credential (a GitHub token with `read:packages`) in Coolify.
+1. New resource → *Private Repository (with GitHub App)* → `robinrehbein/drops.`, branch `main`,
+   build pack *Dockerfile*, base directory `/`, Dockerfile `/server/Dockerfile`, port `8080`.
+   The Dockerfile builds on the host's own architecture (the Coolify host is arm64).
 2. Persistent storage: a volume mounted at `/data`.
-3. Health check path `/healthz`, set a domain (e.g. `sync.example.com`) with HTTPS.
-4. Webhooks / API: copy the deploy webhook URL of the resource and create an API token.
+3. Health check path `/healthz`, domain `https://drops.robinrehbein.de`.
+4. Auto deploy on, *Watch Paths* `server/**`, `core/**`, `gradle/**`, `*.gradle.kts`, `gradle.properties`,
+   so only server-relevant merges to `main` trigger a build.
 
 **GitHub → Settings → Secrets and variables → Actions** (environment `production`)
 
 | Name | Kind | For |
 | --- | --- | --- |
-| `COOLIFY_WEBHOOK` | secret | Deploy webhook URL from Coolify |
-| `COOLIFY_TOKEN` | secret | Coolify API token |
-| `SYNC_URL` | variable | Public server URL, e.g. `https://sync.example.com` (health check + default in the app) |
+| `SYNC_URL` | variable, optional | Default server URL in the app (falls back to `https://drops.robinrehbein.de`) |
 | `ANDROID_KEYSTORE_BASE64` | secret | `base64 -w0 release.jks` |
 | `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | secrets | Signing |
 | `PLAY_SERVICE_ACCOUNT_JSON` | secret, optional | Uploads the AAB to the Play internal track as a draft |
 
-Without the Coolify secrets the image is still pushed and the deploy step is
-skipped with a warning; without a keystore the release build is unsigned.
+Without a keystore the release build is unsigned.
 
 ### Google Play
 
