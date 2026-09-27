@@ -213,7 +213,7 @@ class ServerTest {
     }
 
     @Test
-    fun roasterCardsRenderAndOpen() = withServer(ServerConfig(authRateLimit = 100, publicUrl = "https://sync.example.com")) { client ->
+    fun roasterCardsRenderAndOpen() = withServer(ServerConfig(authRateLimit = 100, publicUrl = "https://sync.example.com", androidCertSha256 = listOf("AA:BB"))) { client ->
         assertEquals(HttpStatusCode.OK, client.get("/roaster").status)
         val card = client.get("/roaster/card?roaster=Nordbahnhof&coffee=Guji%20%3Cb%3E&country=Ethiopia&process=NATURAL&dose=18&yield=40&tmin=26&tmax=30&temp=94")
         assertEquals(HttpStatusCode.OK, card.status)
@@ -226,7 +226,9 @@ class ServerTest {
 
         assertEquals(HttpStatusCode.BadRequest, client.get("/roaster/card?roaster=X&coffee=Y&dose=18&yield=40&tmin=26&tmax=30&temp=150").status)
         assertEquals(HttpStatusCode.NotFound, client.get("/r/kaputt").status)
-        assertEquals(HttpStatusCode.NotFound, client.get("/.well-known/assetlinks.json").status)
+        val assetLinks = client.get("/.well-known/assetlinks.json")
+        assertEquals(HttpStatusCode.OK, assetLinks.status)
+        assertTrue("de.robinrehbein.drops" in assetLinks.bodyAsText())
     }
 
     @Test
