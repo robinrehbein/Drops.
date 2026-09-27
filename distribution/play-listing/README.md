@@ -1,6 +1,6 @@
 # Play-Store-Eintrag
 
-Texte für den Eintrag **drops.** (`de.birneklub.drops`), zum Einfügen in der
+Texte für den Eintrag **Drops.** (`de.robinrehbein.drops`), zum Einfügen in der
 Play Console unter *Store-Präsenz → Haupteintrag im Play Store*.
 
 | Datei | Feld | Limit |

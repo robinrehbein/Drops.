@@ -146,7 +146,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
             val bcImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::importBeanconqueror) }
             SectionHeader("Daten sichern")
             DropsCard(Modifier.fillMaxWidth()) {
-                Text("Android sichert drops. automatisch mit deinem Geräte-Backup.", style = DropsType.bodyStrong, color = c.ink)
+                Text("Android sichert Drops. automatisch mit deinem Geräte-Backup.", style = DropsType.bodyStrong, color = c.ink)
                 Text(
                     "Zusätzlich kannst du alles als Datei exportieren und wieder einspielen, auch auf einem neuen Gerät. Beim Einspielen bleiben neuere Einträge erhalten.",
                     style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = 6.dp),
@@ -168,13 +168,9 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
         if (lib.beans.any { it.id.startsWith(de.birneklub.drop.data.SampleData.PREFIX) }) {
             PillButton("Beispielbohnen entfernen", { vm.removeSampleData() }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
         }
-        // Legal pages live on the website; the Impressum must be reachable within two taps.
-        val site = de.birneklub.drop.android.BuildConfig.DEFAULT_SYNC_URL.trimEnd('/').takeIf { it.removePrefix("https://").isNotBlank() }
-        if (site != null) {
-            Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                TextAction("Impressum", { uri.openUri("$site/impressum") }, c.muted)
-                TextAction("Datenschutz", { uri.openUri("$site/datenschutz") }, c.muted)
-            }
+        Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            TextAction("Impressum", { uri.openUri("https://robinrehbein.de/imprint") }, c.muted)
+            TextAction("Datenschutz", { uri.openUri("https://robinrehbein.github.io/drops./privacy.html") }, c.muted)
         }
         Text("Version ${de.birneklub.drop.android.BuildConfig.VERSION_NAME}", style = DropsType.caption.copy(fontFamily = MonoFamily), color = c.muted, modifier = Modifier.align(Alignment.CenterHorizontally))
     }

@@ -30,13 +30,13 @@ fun FoundingCard(vm: DropsViewModel) {
     HeroCard(Modifier.fillMaxWidth()) {
         Eyebrow("Founding Member", c.heroAccent)
         if (state == FoundingMember.State.Owned) {
-            Text("Danke, dass du drops. von Anfang an trägst.", style = DropsType.headline, color = c.heroInk)
+            Text("Danke, dass du Drops. von Anfang an trägst.", style = DropsType.headline, color = c.heroInk)
             Text("Alle Pro-Funktionen, die nach der Beta kommen, sind für dich dauerhaft freigeschaltet.", style = DropsType.small, color = c.heroMuted)
             return@HeroCard
         }
         Text("Einmal zahlen, für immer dabei.", style = DropsType.headline, color = c.heroInk)
         Text(
-            "drops. bleibt ohne Konto und ohne Werbung nutzbar. Als Founding Member finanzierst du die Beta und bekommst alle späteren Pro-Funktionen ohne Abo.",
+            "Drops. bleibt ohne Konto und ohne Werbung nutzbar. Als Founding Member finanzierst du die Beta und bekommst alle späteren Pro-Funktionen ohne Abo.",
             style = DropsType.small, color = c.heroMuted, modifier = Modifier.padding(bottom = 4.dp),
         )
         when (val s = state) {

@@ -18,13 +18,13 @@ val supplyLinkTemplate = providers.environmentVariable("DROPS_SUPPLY_LINK_TEMPLA
 
 android {
     namespace = "de.birneklub.drop.android"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
-        // Play listing "drops." (de.birneklub.drops); the old Expo test app used de.birneklub.drop.
-        applicationId = "de.birneklub.drops"
+        // Play listing "Drops."; the old Expo test app used de.birneklub.drop.
+        applicationId = "de.robinrehbein.drops"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = ciVersionCode.get()
         versionName = ciVersionName.get()
         buildConfigField("String", "DEFAULT_SYNC_URL", "\"${defaultSyncUrl.get()}\"")
