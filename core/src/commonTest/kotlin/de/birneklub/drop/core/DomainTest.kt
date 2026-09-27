@@ -87,6 +87,13 @@ class DomainTest {
     }
 
     @Test
+    fun palateIgnoresBeansWithUnknownCountry() {
+        val known = Bean("a", "Guji", "R", "Äthiopien", rating = 4.0, updatedAt = now)
+        val unknown = Bean("b", "Blend", "R", "", rating = 5.0, updatedAt = now)
+        assertEquals("Äthiopien", Palate.profile(listOf(known, unknown)).favouriteCountry)
+    }
+
+    @Test
     fun projectionsMatchArtwork() {
         val ethiopia = MapProjection.world(5.95, 38.95)
         assertTrue(abs(ethiopia.x - 331.9) < 0.1 && abs(ethiopia.y - 139.0) < 0.1)
