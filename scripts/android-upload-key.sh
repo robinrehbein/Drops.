@@ -7,7 +7,7 @@
 #   scripts/android-upload-key.sh path/to/key.jks ALIAS  # use an existing keystore (e.g. from EAS)
 #
 # Needs: keytool (comes with any JDK), openssl, base64. With the GitHub CLI (gh)
-# logged in, the secrets are set automatically; otherwise the values are printed.
+# logged in, the secrets are set automatically; otherwise they stay in local files.
 set -euo pipefail
 
 ENVIRONMENT="production"   # GitHub environment the release workflow uses
@@ -56,13 +56,8 @@ else
   B64_FILE="$OUT_DIR/keystore.base64.txt"
   printf '%s' "$B64" > "$B64_FILE"
   chmod 600 "$B64_FILE"
-  cat <<EOF
-GitHub CLI not available. Add these in GitHub → Settings → Environments → $ENVIRONMENT → Secrets:
-  ANDROID_KEYSTORE_BASE64    contents of $B64_FILE
-  ANDROID_KEYSTORE_PASSWORD  $STORE_PASS
-  ANDROID_KEY_ALIAS          $ALIAS
-  ANDROID_KEY_PASSWORD       $KEY_PASS
-EOF
+  echo "GitHub CLI unavailable. Keystore, password, and base64 backup remain in $OUT_DIR."
+  echo "Add the ANDROID_* secrets to the GitHub production environment when access is restored."
 fi
 
 echo

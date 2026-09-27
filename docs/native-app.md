@@ -42,7 +42,7 @@ From the Android emulator the local server is reachable at `http://10.0.2.2:8080
 | `ANDROID_CERT_SHA256` | unset | Comma-separated SHA-256 fingerprints of the app signing key (Play Console → App integrity); served as `/.well-known/assetlinks.json` so `/r/` links open the app directly |
 | `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | unset | Mail server for waitlist confirmations (double opt-in). Without it sign-ups stay unconfirmed. |
 | `PLAY_SERVICE_ACCOUNT_JSON` | unset | Same service account JSON as in GitHub; lets the server confirm purchases with Google (`POST /api/purchases/verify`). In the Play Console the account needs *View financial data*. |
-| `PLAY_PACKAGE_NAME` | `de.birneklub.drops` | App id for purchase checks |
+| `PLAY_PACKAGE_NAME` | `de.robinrehbein.drops` | App id for purchase checks |
 | `STATS_TOKEN` | unset | At least 16 characters; enables `GET /api/stats/report` with `Authorization: Bearer <token>` |
 
 Endpoints: `GET /healthz`, `POST /api/auth/register`, `POST /api/auth/login`,
@@ -121,7 +121,7 @@ without tracking people:
 | Workflow | Trigger | Does |
 | --- | --- | --- |
 | `ci.yml` | every PR and push to `main` | core + server tests, data tests, debug APK artifact |
-| `android-release.yml` | push to `main` touching app code, tags `v*` | tests → signed release APK + AAB (artifacts) → Play internal track (optional) → GitHub Release on tags |
+| `android-release.yml` | every push to `main` or manual dispatch | tests → signed AAB artifact → Play internal and closed test; open test and production when enabled |
 
 ### One-time setup
 
@@ -142,13 +142,13 @@ without tracking people:
 | `SYNC_URL` | variable, optional | Default server URL in the app (falls back to `https://drops.robinrehbein.de`) |
 | `ANDROID_KEYSTORE_BASE64` | secret | `base64 -w0 release.jks` |
 | `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | secrets | Signing |
-| `PLAY_SERVICE_ACCOUNT_JSON` | secret, optional | Uploads the AAB to the Play internal track as a draft |
+| `PLAY_SERVICE_ACCOUNT_JSON` | secret, required | Publishes the AAB to enabled Google Play tracks |
 
 Without a keystore the release build is unsigned.
 
 ### Google Play
 
-The native app is a new Play listing, **drops.** with the id `de.birneklub.drops`.
+The native app is a new Play listing, **Drops.** with the id `de.robinrehbein.drops`.
 The old Expo test app (`de.birneklub.drop`, a typo) is retired: unpublish its
 test tracks once testers have the new app.
 
@@ -169,31 +169,23 @@ and password into your password manager.
 1. [Google Cloud Console](https://console.cloud.google.com/) → create or pick a
    project → *APIs & Services → Library* → enable **Google Play Android
    Developer API**.
-2. *IAM & Admin → Service Accounts* → **Create service account** (e.g.
-   `drops-ci`), no roles needed → open it → *Keys → Add key → Create new key →
-   JSON*. The file downloads once.
+2. *IAM & Admin → Service Accounts* → Use the existing service account `eas-play-publisher@drop-498214.iam.gserviceaccount.com` → *Keys → Add key → Create new key → JSON*. The file downloads once.
 3. [Play Console](https://play.google.com/console) → *Users and permissions* →
-   **Invite new users** → the service account's e-mail → *App permissions* →
-   add **drops.** with *Release apps to testing tracks* (and *Release to
-   production* if tags should publish) → invite.
+   Open the existing service account → *App permissions* → add **Drops.** with release permissions for the tracks to be automated.
 4. GitHub → *Settings → Environments → production* → secret
    `PLAY_SERVICE_ACCOUNT_JSON` = the full content of the JSON file
    (`gh secret set PLAY_SERVICE_ACCOUNT_JSON --env production < key.json`).
    Then delete the downloaded file.
 
-**First release, by hand:** Play's API cannot create an app. In the Play
-Console create the app **drops.**, then upload the first AAB (from the
-*Android release* workflow artifacts) to *Internal testing* and roll it out.
-This also enrols Play App Signing. After that the pipeline takes over:
+**Initial release:** Version 0.3.1 (9) was uploaded to internal testing manually.
+The closed alpha release is submitted through Play Console and requires Google review.
 
-| Push | Play track | Default status |
-| --- | --- | --- |
-| `dev` | Internal testing | completed (live for the team) |
-| `main` | Closed testing (alpha) | completed (live for beta testers) |
-| tag `v1.2.3` | Production | draft; set variable `PLAY_PRODUCTION_STATUS=completed` to roll out automatically |
-
-Release notes come from `distribution/whatsnew/`. The version code is the
-workflow run number, so every upload is higher than the one before.
+Every merge to `main` builds and tests a signed AAB, assigns a unique version
+code, and publishes it to `internal,alpha`. Set `PLAY_OPEN_ENABLED=true` and
+`PLAY_PRODUCTION_ENABLED=true` in the GitHub `production` environment only after
+Google has enabled those tracks and release permissions have been granted. The
+workflow fails clearly if signing or Play credentials are missing. Release notes
+come from `distribution/whatsnew/`.
 
 For `ANDROID_CERT_SHA256` on the server take the *App signing key* SHA-256
 from Play Console → *Test and release → App integrity*, plus the upload key's

@@ -95,7 +95,7 @@ fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
             }
             1 -> {
                 ScreenTitle("Deine Mühle")
-                Text("Die Skala deiner Mühle bestimmt, in welchen Schritten drops. den Mahlgrad vorschlägt.", style = DropsType.body, color = c.muted)
+                Text("Die Skala deiner Mühle bestimmt, in welchen Schritten Drops. den Mahlgrad vorschlägt.", style = DropsType.body, color = c.muted)
                 EquipmentPicker(EquipmentKind.GRINDER, suggestedFor = machineId) { _, grinder, custom ->
                     vm.chooseGrinder(grinder, custom)
                     step = 2
@@ -106,7 +106,7 @@ fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
                 DropsCard(Modifier.fillMaxWidth()) {
                     Text("Was ist gerade im Trichter?", style = DropsType.bodyStrong, color = c.ink)
                     Text(
-                        "Mit Röstdatum und Menge erinnert dich drops., bevor die Tüte leer ist, und merkt sich das Rezept für den Nachkauf.",
+                        "Mit Röstdatum und Menge erinnert dich Drops., bevor die Tüte leer ist, und merkt sich das Rezept für den Nachkauf.",
                         style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = 6.dp),
                     )
                 }

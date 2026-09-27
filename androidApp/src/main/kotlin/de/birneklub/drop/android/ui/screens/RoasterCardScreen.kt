@@ -52,7 +52,7 @@ fun RoasterCardScreen(vm: DropsViewModel, nav: NavController, payload: String) {
             }
             if (card.hint.isNotBlank()) Text(card.hint, style = DropsType.small, color = c.ink, modifier = Modifier.padding(top = 12.dp))
         }
-        Text("Den Mahlgrad findest du mit deiner Mühle selbst; drops. hilft dir beim ersten Shot.", style = DropsType.small, color = c.muted)
+        Text("Den Mahlgrad findest du mit deiner Mühle selbst; Drops. hilft dir beim ersten Shot.", style = DropsType.small, color = c.muted)
         PillButton("Bohne und Rezept übernehmen", {
             val id = vm.addRoasterCard(card)
             nav.navigate(Routes.bean(id)) { popUpTo(Routes.ROASTER_CARD) { inclusive = true } }

@@ -21,7 +21,7 @@ import de.birneklub.drop.core.reminders.ReminderKind
 import java.util.concurrent.TimeUnit
 
 /** Opens a screen when the app is launched from a notification. */
-const val EXTRA_ROUTE = "de.birneklub.drop.ROUTE"
+const val EXTRA_ROUTE = "de.robinrehbein.drops.ROUTE"
 
 object ReminderNotifications {
     private const val CHANNEL_CARE = "care"
