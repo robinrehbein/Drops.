@@ -63,12 +63,12 @@ Datei: `TodayScreen.kt` · Screenshot: `03_today`
 
 Datei: `BeansScreen.kt` · Screenshot: `04_beans`
 
-- [ ] Zahlen
-- [ ] Sprache
-- [ ] Layout
-- [ ] Design
-- [ ] Barrierefreiheit
-- [ ] Zustände
+- [x] Zahlen
+- [x] Sprache
+- [x] Layout
+- [x] Design
+- [x] Barrierefreiheit
+- [x] Zustände
 
 ### Bohnen-Detail
 
