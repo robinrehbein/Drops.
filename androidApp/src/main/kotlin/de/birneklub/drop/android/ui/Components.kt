@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui
 
+import androidx.compose.material3.minimumInteractiveComponentSize
 import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -161,7 +162,9 @@ fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     Box(
         Modifier
-            .height(36.dp)
+            // 36 dp pill, 48 dp touch target.
+            .minimumInteractiveComponentSize()
+            .heightIn(min = 36.dp)
             .clip(shape)
             .background(if (selected) c.inverse else Color.Transparent)
             .border(1.dp, if (selected) c.inverse else c.line, shape)
@@ -184,7 +187,7 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
             Box(
                 Modifier
                     .weight(1f)
-                    .heightIn(min = 44.dp)
+                    .heightIn(min = Space.touch)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (on) c.surface else Color.Transparent)
                     .semantics { this.selected = on }

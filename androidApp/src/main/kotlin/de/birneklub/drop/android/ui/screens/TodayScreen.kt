@@ -1,5 +1,7 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
@@ -80,11 +82,18 @@ fun ScreenColumn(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ScreenTitle(title: String, trailing: String? = null, trailingColor: Color = Drops.colors.muted) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-        Text(title, style = DropsType.display, color = Drops.colors.ink)
-        if (trailing != null) Text(trailing, style = DropsType.caption.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = trailingColor)
+    // The summary moves under the title when both do not fit on one line.
+    FlowRow(
+        Modifier.fillMaxWidth().semantics { heading() },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(Space.xs),
+        itemVerticalAlignment = Alignment.Bottom,
+    ) {
+        Text(title, style = DropsType.display, color = Drops.colors.ink, modifier = Modifier.padding(end = Space.m))
+        if (trailing != null) Text(trailing, style = DropsType.caption.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = trailingColor, modifier = Modifier.padding(bottom = Space.xs))
     }
 }
 

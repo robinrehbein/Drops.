@@ -1,5 +1,9 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.style.TextOverflow
+import de.birneklub.drop.android.ui.rememberLargeFont
+import de.birneklub.drop.android.ui.Space
 import de.birneklub.drop.android.ui.TextAction
 import de.birneklub.drop.android.ui.ButtonKind
 import de.birneklub.drop.android.ui.PillButton
@@ -72,24 +76,26 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
     var query by rememberSaveable { mutableStateOf("") }
     val today = vm.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val c = Drops.colors
+    val large = rememberLargeFont()
 
     val visible = lib.beans.filter { b ->
         (filter.status == null || b.status == filter.status) &&
-            (query.isBlank() || listOf(b.name, b.roaster, b.country, b.region, b.process.name).plus(b.tastingNotes).joinToString(" ").contains(query.trim(), ignoreCase = true))
+            (query.isBlank() || listOf(b.name, b.roaster, b.country, b.region, processLabel(b.process), b.variety).plus(b.tastingNotes).joinToString(" ").contains(query.trim(), ignoreCase = true))
     }
 
     Box(Modifier.fillMaxSize()) {
         ScreenColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 110.dp)) {
-            ScreenTitle("Bohnen", "${lib.beans.size} Röstungen · ${lib.beans.map { it.country }.filter { it.isNotBlank() }.distinct().size} Länder")
+            val countries = lib.beans.map { it.country }.filter { it.isNotBlank() }.distinct().size
+            ScreenTitle("Bohnen", "${lib.beans.size} ${if (lib.beans.size == 1) "Röstung" else "Röstungen"} · $countries ${if (countries == 1) "Land" else "Länder"}")
 
             Row(
-                Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(24.dp)).padding(horizontal = 14.dp),
+                Modifier.fillMaxWidth().heightIn(min = Space.touch).clip(RoundedCornerShape(24.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(24.dp)).padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Icon(DropsIcons.Search, null, tint = c.muted, size = 18.dp)
                 Box(Modifier.weight(1f)) {
-                    if (query.isEmpty()) Text("Bohne, Rösterei, Land, Aroma …", style = DropsType.body, color = c.muted)
+                    if (query.isEmpty()) Text("Bohne, Rösterei, Land, Aroma …", style = DropsType.body, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     BasicTextField(query, { query = it }, singleLine = true, textStyle = DropsType.body.copy(color = c.ink), cursorBrush = SolidColor(c.accent), modifier = Modifier.fillMaxWidth().a11y("Bohnen durchsuchen"))
                 }
             }
@@ -115,35 +121,35 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
                     frozen.forEachIndexed { i, b ->
                         if (i > 0) de.birneklub.drop.android.ui.Divider()
                         Row(
-                            Modifier.fillMaxWidth().clickable { nav.navigate(Routes.bean(b.id)) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                            Modifier.fillMaxWidth().heightIn(min = Space.touch).clickable(role = Role.Button) { nav.navigate(Routes.bean(b.id)) }.padding(horizontal = Space.l, vertical = Space.m),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(Space.m),
                         ) {
-                            IconBox(DropsIcons.Snow, c.ice, c.iceSoft, 36.dp)
+                            if (!large) IconBox(DropsIcons.Snow, c.ice, c.iceSoft, 36.dp)
                             Column(Modifier.weight(1f)) {
                                 Text(b.name, style = DropsType.bodyStrong, color = c.ink)
-                                Text(listOf(b.country, b.roaster).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.caption, color = c.muted)
+                                Format.joinOrNull(b.country, b.roaster)?.let { Text(it, style = DropsType.caption, color = c.muted) }
+                                Text("${b.frozenDoses} ${if (b.frozenDoses == 1) "Dose" else "Dosen"} eingefroren", style = DropsType.caption, color = c.ice)
                             }
-                            Text("${b.frozenDoses} × 18 g", style = DropsType.small.copy(fontFamily = MonoFamily), color = c.ink)
                         }
                     }
                 }
             }
             if (archived.isNotEmpty()) {
                 Eyebrow("Archiv")
-                archived.chunked(2).forEach { pair ->
+                archived.chunked(if (large) 1 else 2).forEach { pair ->
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         pair.forEach { b ->
                             DropsCard(Modifier.weight(1f), onClick = { nav.navigate(Routes.bean(b.id)) }, padding = PaddingValues(12.dp)) {
                                 Text(b.name, style = DropsType.bodyStrong, color = c.ink)
-                                Text(listOf(b.country, b.roaster).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.caption, color = c.muted)
+                                Format.joinOrNull(b.country, b.roaster)?.let { Text(it, style = DropsType.caption, color = c.muted) }
                                 Text(
-                                    Format.join(Format.rating(b.rating), if (b.wouldRebuy == true) "wieder kaufen" else null),
-                                    style = DropsType.small.copy(fontFamily = MonoFamily), color = c.accent, modifier = Modifier.padding(top = 4.dp),
+                                    Format.join(b.rating?.let { "★ ${Format.rating(it)}" } ?: "ohne Bewertung", if (b.wouldRebuy == true) "wieder kaufen" else null),
+                                    style = DropsType.small, color = if (b.rating != null) c.accent else c.muted, modifier = Modifier.padding(top = Space.xs),
                                 )
                             }
                         }
-                        if (pair.size == 1) Box(Modifier.weight(1f))
+                        if (pair.size == 1 && !large) Box(Modifier.weight(1f))
                     }
                 }
             }
@@ -191,27 +197,35 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun OpenBeanRow(bean: Bean, today: kotlinx.datetime.LocalDate, onClick: () -> Unit) {
     val c = Drops.colors
+    val large = rememberLargeFont()
     val fresh = bean.roastDate?.let { RoastFreshness.evaluate(it, today) }
-    DropsCard(Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(14.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(52.dp, 64.dp).clip(RoundedCornerShape(10.dp)).background(bagColor(bean, c)), contentAlignment = Alignment.BottomCenter) {
-                Text(bean.country.ifBlank { "?" }.take(3).uppercase(), style = DropsType.eyebrow.copy(fontSize = 10.sp), color = c.heroInk, modifier = Modifier.padding(bottom = 8.dp))
+    DropsCard(Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(Space.l)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.l), verticalAlignment = Alignment.CenterVertically) {
+            // The bag swatch is decoration; with large text the words need the room.
+            if (!large) {
+                Box(Modifier.size(52.dp, 64.dp).clip(RoundedCornerShape(10.dp)).background(bagColor(bean, c)), contentAlignment = Alignment.BottomCenter) {
+                    Text(bean.country.ifBlank { "?" }.take(3).uppercase(), style = DropsType.eyebrow.copy(fontSize = 10.sp), color = c.heroInk, modifier = Modifier.padding(bottom = Space.s))
+                }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(bean.name + if (bean.inHopper) " ●" else "", style = DropsType.bodyStrong.copy(fontSize = 16.sp), color = c.ink)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+                androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(bean.name, style = DropsType.bodyStrong.copy(fontSize = 16.sp), color = c.ink, modifier = Modifier.padding(end = Space.s))
                     if (fresh != null) {
                         val col = when (fresh.phase) { FreshnessPhase.RESTING -> c.muted; FreshnessPhase.PEAK -> c.ok; FreshnessPhase.FADING -> c.accent }
                         Text("Tag ${fresh.daysSinceRoast}", style = DropsType.caption.copy(fontFamily = MonoFamily), color = col)
                     }
                 }
-                Text("${bean.roaster} · ${processLabel(bean.process)} · ${bean.tastingNotes.take(2).joinToString(", ")}", style = DropsType.small, color = c.muted, maxLines = 1)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (bean.inHopper) Text("Im Trichter", style = DropsType.caption, color = c.accent)
+                Format.joinOrNull(bean.roaster, bean.process.takeIf { it != de.birneklub.drop.core.model.Process.OTHER }?.let(::processLabel), bean.tastingNotes.take(2).joinToString(", "))?.let {
+                    Text(it, style = DropsType.small, color = c.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                     ProgressBar((bean.remainingGrams / bean.weightGrams).toFloat(), c.ink, Modifier.weight(1f), height = 5.dp)
-                    Text(Format.grams(bean.remainingGrams, 0), style = DropsType.caption.copy(fontFamily = MonoFamily, fontSize = 11.sp), color = c.muted)
+                    Text("${Format.grams(bean.remainingGrams, 0)} übrig", style = DropsType.caption.copy(fontFamily = MonoFamily, fontSize = 11.sp), color = c.muted)
                 }
             }
         }
