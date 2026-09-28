@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.format.Format
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -34,8 +35,6 @@ import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.SectionHeader
 import de.birneklub.drop.android.ui.TaskRow
 import de.birneklub.drop.android.ui.TextAction
-import de.birneklub.drop.android.ui.fmtDe
-import de.birneklub.drop.android.ui.grouped
 import de.birneklub.drop.android.ui.rememberNotificationPermission
 import de.birneklub.drop.core.domain.TaskState
 import de.birneklub.drop.core.model.EquipmentKind
@@ -64,7 +63,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                         Text(it.details, style = DropsType.caption, color = c.heroMuted)
                     }
                     Column {
-                        Text(it.shotCount.grouped(), style = DropsType.number.copy(fontSize = 20.sp), color = c.heroInk)
+                        Text(Format.integer(it.shotCount), style = DropsType.number.copy(fontSize = 20.sp), color = c.heroInk)
                         Text("Shots gesamt", style = DropsType.caption.copy(fontSize = 11.sp), color = c.heroMuted)
                     }
                 }
@@ -77,7 +76,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                         Text(it.details, style = DropsType.caption, color = c.heroMuted)
                     }
                     Column {
-                        Text("${it.groundKg.fmtDe()} kg", style = DropsType.number.copy(fontSize = 20.sp), color = c.heroInk)
+                        Text(Format.kilograms(it.groundKg), style = DropsType.number.copy(fontSize = 20.sp), color = c.heroInk)
                         Text("gemahlen", style = DropsType.caption.copy(fontSize = 11.sp), color = c.heroMuted)
                     }
                 }
@@ -98,7 +97,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(DropsIcons.Drop, null, tint = c.ice, size = 20.dp)
                     Text(
-                        "Wasser: Leitung ${machine.waterHardness!!.fmtDe(0)} °dH → Filter ${machine.filteredHardness?.fmtDe(0) ?: "–"} °dH",
+                        "Wasser: Leitung ${Format.hardness(machine.waterHardness)} → Filter ${Format.hardness(machine.filteredHardness)}",
                         style = DropsType.body.copy(fontSize = 14.sp), color = c.ink, modifier = Modifier.weight(1f),
                     )
                 }

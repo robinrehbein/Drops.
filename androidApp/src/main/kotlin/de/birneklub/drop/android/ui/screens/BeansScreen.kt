@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -47,7 +48,6 @@ import de.birneklub.drop.android.ui.MonoFamily
 import de.birneklub.drop.android.ui.ProgressBar
 import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.a11y
-import de.birneklub.drop.android.ui.fmt
 import de.birneklub.drop.core.domain.FreshnessPhase
 import de.birneklub.drop.core.domain.RoastFreshness
 import de.birneklub.drop.core.model.Bean
@@ -60,10 +60,7 @@ private enum class BeanFilter(val label: String, val status: BeanStatus?) {
 }
 
 /** Stable color per bean for the little bag swatch. */
-fun bagColor(bean: Bean): Color {
-    val palette = listOf(0xFF2A211B, 0xFF7A4B2A, 0xFF5B2E2A, 0xFF8C3F4A, 0xFF3E4A2F, 0xFF4A3226, 0xFF2F3A4A, 0xFF6B2A3A)
-    return Color(palette[(bean.id.hashCode() and 0x7fffffff) % palette.size])
-}
+fun bagColor(bean: Bean, c: de.birneklub.drop.android.ui.DropsColors): Color = c.bags[(bean.id.hashCode() and 0x7fffffff) % c.bags.size]
 
 @Composable
 fun BeansScreen(vm: DropsViewModel, nav: NavController) {
@@ -138,7 +135,7 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
                                 Text(b.name, style = DropsType.bodyStrong, color = c.ink)
                                 Text(listOf(b.country, b.roaster).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.caption, color = c.muted)
                                 Text(
-                                    (b.rating?.fmt() ?: "–") + if (b.wouldRebuy == true) " · wieder kaufen" else "",
+                                    Format.join(Format.rating(b.rating), if (b.wouldRebuy == true) "wieder kaufen" else null),
                                     style = DropsType.small.copy(fontFamily = MonoFamily), color = c.accent, modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
@@ -173,8 +170,8 @@ private fun OpenBeanRow(bean: Bean, today: kotlinx.datetime.LocalDate, onClick: 
     val fresh = bean.roastDate?.let { RoastFreshness.evaluate(it, today) }
     DropsCard(Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(14.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(52.dp, 64.dp).clip(RoundedCornerShape(10.dp)).background(bagColor(bean)), contentAlignment = Alignment.BottomCenter) {
-                Text(bean.country.ifBlank { "?" }.take(3).uppercase(), style = DropsType.eyebrow.copy(fontSize = 10.sp), color = Color(0xFFF6EFE6), modifier = Modifier.padding(bottom = 8.dp))
+            Box(Modifier.size(52.dp, 64.dp).clip(RoundedCornerShape(10.dp)).background(bagColor(bean, c)), contentAlignment = Alignment.BottomCenter) {
+                Text(bean.country.ifBlank { "?" }.take(3).uppercase(), style = DropsType.eyebrow.copy(fontSize = 10.sp), color = c.heroInk, modifier = Modifier.padding(bottom = 8.dp))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -187,7 +184,7 @@ private fun OpenBeanRow(bean: Bean, today: kotlinx.datetime.LocalDate, onClick: 
                 Text("${bean.roaster} · ${processLabel(bean.process)} · ${bean.tastingNotes.take(2).joinToString(", ")}", style = DropsType.small, color = c.muted, maxLines = 1)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ProgressBar((bean.remainingGrams / bean.weightGrams).toFloat(), c.ink, Modifier.weight(1f), height = 5.dp)
-                    Text("${bean.remainingGrams.fmt(0)} g", style = DropsType.caption.copy(fontFamily = MonoFamily, fontSize = 11.sp), color = c.muted)
+                    Text(Format.grams(bean.remainingGrams, 0), style = DropsType.caption.copy(fontFamily = MonoFamily, fontSize = 11.sp), color = c.muted)
                 }
             }
         }

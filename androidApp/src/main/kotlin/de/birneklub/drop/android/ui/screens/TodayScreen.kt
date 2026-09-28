@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +44,6 @@ import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.SectionHeader
 import de.birneklub.drop.android.ui.Stat
 import de.birneklub.drop.android.ui.TaskRow
-import de.birneklub.drop.android.ui.fmt
 import de.birneklub.drop.android.ui.label
 import de.birneklub.drop.core.domain.FreshnessPhase
 import de.birneklub.drop.core.domain.RoastFreshness
@@ -157,7 +157,7 @@ fun TodayScreen(vm: DropsViewModel, nav: NavController) {
                     recent.forEach { s ->
                         DropsCard(Modifier.weight(1f), onClick = { nav.navigate(Routes.bean(s.beanId)) }, padding = PaddingValues(12.dp)) {
                             Text(relativeDay(s.pulledAt, now), style = DropsType.caption, color = Drops.colors.muted)
-                            Text("${s.doseGrams.fmt(0)}→${s.yieldGrams.fmt(0)} · ${s.timeSec.fmt(0)}s", style = DropsType.small.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = Drops.colors.ink, modifier = Modifier.padding(vertical = 6.dp))
+                            Text("${Format.doseToYield(s.doseGrams, s.yieldGrams)} · ${Format.seconds(s.timeSec)}", style = DropsType.small.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = Drops.colors.ink, modifier = Modifier.padding(vertical = 6.dp))
                             Text(TasteLabels[s.taste.ordinal], style = DropsType.caption, color = tasteColor(s.taste.ordinal))
                         }
                     }
@@ -195,7 +195,7 @@ private fun HopperCard(bean: Bean, recipe: Recipe?, today: kotlinx.datetime.Loca
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Eyebrow("Im Trichter", c.heroAccent)
             val shots = floor(bean.remainingGrams / (recipe?.doseGrams ?: 18.0)).toInt()
-            Text("${bean.remainingGrams.fmt(0)} / ${bean.weightGrams} g · ≈ $shots Shots", style = DropsType.caption.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = c.heroMuted)
+            Text("${Format.number(bean.remainingGrams, 0)} / ${Format.grams(bean.weightGrams.toDouble(), 0)} · ≈ $shots Shots", style = DropsType.caption.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = c.heroMuted)
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(bean.name, style = DropsType.title.copy(fontSize = 34.sp), color = c.heroInk)
@@ -218,10 +218,10 @@ private fun HopperCard(bean: Bean, recipe: Recipe?, today: kotlinx.datetime.Loca
         }
         if (recipe != null) {
             Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat("Mahlgrad", recipe.grindSetting.fmt(), c.heroMuted, c.heroInk, Modifier.weight(1f))
-                Stat("Ratio", "1:${recipe.ratio.fmt()}", c.heroMuted, c.heroInk, Modifier.weight(1f))
-                Stat("Zeit", "${recipe.targetTimeMinSec}–${recipe.targetTimeMaxSec}s", c.heroMuted, c.heroInk, Modifier.weight(1.1f))
-                Stat("Temp.", "${recipe.temperatureC}°", c.heroMuted, c.heroInk, Modifier.weight(0.8f))
+                Stat("Mahlgrad", Format.grind(recipe.grindSetting), c.heroMuted, c.heroInk, Modifier.weight(1f))
+                Stat("Ratio", Format.ratio(recipe.doseGrams, recipe.yieldGrams), c.heroMuted, c.heroInk, Modifier.weight(1f))
+                Stat("Zeit", Format.secondsRange(recipe.targetTimeMinSec, recipe.targetTimeMaxSec), c.heroMuted, c.heroInk, Modifier.weight(1.1f))
+                Stat("Temp.", Format.celsius(recipe.temperatureC), c.heroMuted, c.heroInk, Modifier.weight(0.8f))
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -239,11 +239,11 @@ private fun FreshnessBar(days: Int) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
             val w = maxWidth
             Box(Modifier.align(Alignment.CenterStart).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(c.heroLine))
-            Box(Modifier.align(Alignment.CenterStart).offset(x = w * (7 / max)).width(w * (21 / max)).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF6B4A33)))
+            Box(Modifier.align(Alignment.CenterStart).offset(x = w * (7 / max)).width(w * (21 / max)).height(8.dp).clip(RoundedCornerShape(4.dp)).background(c.heroWindow))
             Box(Modifier.align(Alignment.CenterStart).offset(x = w * (days.coerceAtMost(45) / max) - 2.dp).width(4.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(c.heroAccent))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf("0", "7", "28 Tage", "45").forEach { Text(it, style = DropsType.eyebrow.copy(fontSize = 10.sp, letterSpacing = 0.sp), color = Color(0xFF8F8275)) }
+            listOf("0", "7", "28 Tage", "45").forEach { Text(it, style = DropsType.eyebrow.copy(fontSize = 10.sp, letterSpacing = 0.sp), color = c.heroMuted) }
         }
     }
 }
