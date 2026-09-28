@@ -74,12 +74,12 @@ Datei: `BeansScreen.kt` · Screenshot: `04_beans`
 
 Datei: `BeanDetailScreen.kt` · Screenshot: `05_bean_detail`
 
-- [ ] Zahlen
-- [ ] Sprache
-- [ ] Layout
-- [ ] Design
-- [ ] Barrierefreiheit
-- [ ] Zustände
+- [x] Zahlen
+- [x] Sprache
+- [x] Layout
+- [x] Design
+- [x] Barrierefreiheit
+- [x] Zustände
 
 ### Neue/Bearbeiten Bohne
 
