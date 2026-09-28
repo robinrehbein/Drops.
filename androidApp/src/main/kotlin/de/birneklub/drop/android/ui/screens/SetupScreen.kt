@@ -89,7 +89,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                 if (grinder == null) PillButton("Mühle einrichten", { nav.navigate(Routes.equipment(EquipmentKind.GRINDER)) }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
             }
         } else {
-            Text("Tippe auf ein Gerät, um es zu ändern.", style = DropsType.caption, color = c.muted)
+            Text("Tippe auf ein Gerät für Details, Zähler und Pflege.", style = DropsType.caption, color = c.muted)
         }
 
         if (machine?.waterHardness != null) {
@@ -119,7 +119,21 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionHeader("Pflegeplan", trailing = "nach Dringlichkeit")
-            plan.forEach { s -> DropsCard(Modifier.fillMaxWidth(), padding = PaddingValues(0.dp)) { TaskRow(s, compact = false, onBuy = { uri.openUri(vm.open(vm.supplyLink(it), reorder = false)) }, buySponsored = vm.supplyLinksSponsored) { vm.completeTask(s) } } }
+            if (plan.isEmpty()) {
+                DropsCard(Modifier.fillMaxWidth()) {
+                    Text("Noch keine Pflegeaufgaben.", style = DropsType.bodyStrong, color = c.ink)
+                    Text(
+                        if (machine == null && grinder == null) "Richte Maschine und Mühle ein, dann legt Drops. einen passenden Pflegeplan an."
+                        else "Tippe auf ein Gerät und leg unter „Pflege“ eine Aufgabe an.",
+                        style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+            plan.forEach { s ->
+                DropsCard(Modifier.fillMaxWidth(), onClick = { nav.navigate(Routes.task(s.task.equipmentId, s.task.id)) }, padding = PaddingValues(0.dp)) {
+                    TaskRow(s, compact = false, onBuy = { uri.openUri(vm.open(vm.supplyLink(it), reorder = false)) }, buySponsored = vm.supplyLinksSponsored) { vm.completeTask(s) }
+                }
+            }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

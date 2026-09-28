@@ -353,4 +353,22 @@ class DataTest {
         repo.deleteShot("sample-s5")
         assertEquals(250.0, repo.beans.first().single { it.id == "sample-guji" }.remainingGrams)
     }
+
+    @Test
+    fun completingATaskCanBeUndone() = runTest {
+        val db = createDatabase()
+        val repo = repo(db)
+        repo.seedIfEmpty()
+        val before = repo.tasks.first().single { it.id == "sample-t-backflush" }
+        val previous = assertNotNull(repo.completeTask(before.id))
+        assertEquals(fixedNow, repo.tasks.first().single { it.id == before.id }.lastDoneAt)
+        repo.saveTask(previous)
+        assertEquals(before.lastDoneAt, repo.tasks.first().single { it.id == before.id }.lastDoneAt)
+
+        val gone = assertNotNull(repo.deleteTask(before.id))
+        assertNull(repo.tasks.first().firstOrNull { it.id == before.id })
+        assertEquals(1L, db.recordsQueries.byId("tasks", before.id).executeAsOne().deleted)
+        repo.saveTask(gone)
+        assertNotNull(repo.tasks.first().firstOrNull { it.id == before.id })
+    }
 }

@@ -109,7 +109,9 @@ class SampleData(
             } + Shot("${PREFIX}s-cerrado", "${PREFIX}cerrado", "${PREFIX}r-cerrado", now - 2.days, 16.0, 18.0, 36.0, 28.0, 92, Taste.SLIGHTLY_BITTER, now)
 
             val machine = Equipment("${PREFIX}machine", EquipmentKind.MACHINE, "Siebträger", "Dualboiler · E61", shotCount = 1284, waterHardness = 14.0, filteredHardness = 6.0, updatedAt = now)
-            val grinder = Equipment("${PREFIX}grinder", EquipmentKind.GRINDER, "Mühle", "Single-Dose · 64 mm Flat", groundKg = 21.6, updatedAt = now)
+            val grinder = Equipment("${PREFIX}grinder", EquipmentKind.GRINDER, "Mühle", "Single-Dose · 64 mm Flat", groundKg = 21.6,
+                grindScale = de.birneklub.drop.core.model.GrindScale(0.0, 50.0, 0.25, 12.0, 18.0), updatedAt = now,
+            )
 
             val tasks = listOf(
                 MaintenanceTask("${PREFIX}t-backflush", machine.id, "Rückspülen mit Reiniger", "Blindsieb, 5 × 10 s", 14.0, IntervalUnit.DAYS, now - 16.days, updatedAt = now),
