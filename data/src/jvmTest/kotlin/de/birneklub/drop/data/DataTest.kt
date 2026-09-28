@@ -378,4 +378,14 @@ class DataTest {
         repo.saveTask(gone)
         assertNotNull(repo.tasks.first().firstOrNull { it.id == before.id })
     }
+
+    @Test
+    fun discoverReasonsComeOnlyFromOwnRatings() {
+        val kenia = DiscoverCatalog.recommendations.single { it.country == "Kenia" }
+        val burundi = DiscoverCatalog.recommendations.single { it.country == "Burundi" }
+        assertNull(DiscoverCatalog.reason(kenia, emptyList()), "no ratings, no claim")
+        val sample = SampleData.create(fixedNow).beans
+        assertEquals("Du hast Karogoto AA aus Kenia mit 4,5/5 bewertet.", DiscoverCatalog.reason(kenia, sample))
+        assertEquals("Passt zu deiner Vorliebe für Fruchtiges.", DiscoverCatalog.reason(burundi, sample))
+    }
 }
