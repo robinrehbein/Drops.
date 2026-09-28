@@ -40,6 +40,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import de.birneklub.drop.android.ui.screens.RecipeScreen
+import de.birneklub.drop.android.ui.screens.ShotEditScreen
+import de.birneklub.drop.android.ui.screens.ShotsScreen
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import de.birneklub.drop.android.AppContainer
@@ -66,6 +68,8 @@ object Routes {
     const val SHOT = "shot/{beanId}"
     const val ADD_BEAN = "add-bean"
     const val EDIT_BEAN = "bean/{id}/edit"
+    const val SHOTS = "bean/{id}/shots"
+    const val EDIT_SHOT = "shots/{shotId}/edit"
     const val RECIPE = "recipe/{beanId}/{recipeId}?copy={copy}"
     const val ACCOUNT = "account"
     const val ONBOARDING = "onboarding"
@@ -74,6 +78,8 @@ object Routes {
 
     fun bean(id: String) = "bean/$id"
     fun editBean(id: String) = "bean/$id/edit"
+    fun shots(beanId: String) = "bean/$beanId/shots"
+    fun editShot(shotId: String) = "shots/$shotId/edit"
     /** [recipeId] null = new recipe, [copyOf] = new recipe pre-filled from another one. */
     fun recipe(beanId: String, recipeId: String? = null, copyOf: String? = null) =
         "recipe/$beanId/${recipeId ?: "new"}" + (copyOf?.let { "?copy=$it" } ?: "")
@@ -151,6 +157,8 @@ fun DropsRoot(container: AppContainer, deepLink: MutableStateFlow<String?> = Mut
                 val args = it.arguments
                 RecipeScreen(vm, nav, args?.getString("beanId").orEmpty(), args?.getString("recipeId")?.takeIf { id -> id != "new" }, args?.getString("copy"))
             }
+            composable(Routes.SHOTS) { ShotsScreen(vm, nav, it.arguments?.getString("id").orEmpty()) }
+            composable(Routes.EDIT_SHOT) { ShotEditScreen(vm, nav, it.arguments?.getString("shotId").orEmpty()) }
             composable(Routes.EDIT_BEAN) { AddBeanScreen(vm, nav, it.arguments?.getString("id").orEmpty()) }
             composable(Routes.ACCOUNT) { AccountScreen(vm, nav) }
             composable(Routes.ONBOARDING) { OnboardingScreen(vm, nav) }

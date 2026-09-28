@@ -167,6 +167,57 @@ class DropsRepository(
     }
 
     /**
+     * Corrects a logged shot. The bag and the grinder's kg counter move by the
+     * difference in dose; the machine's shot counter stays (it is still one shot).
+     */
+    suspend fun updateShot(shot: Shot) = withContext(io) {
+        db.transaction {
+            val old = read(SyncCollections.SHOTS, shot.id, Shot.serializer()) ?: return@transaction
+            val t = now()
+            val fixed = shot.copy(beanId = old.beanId, updatedAt = t)
+            write(SyncCollections.SHOTS, Shot.serializer(), fixed)
+            val delta = fixed.doseGrams - old.doseGrams
+            if (delta != 0.0) {
+                adjustBag(old.beanId, -delta, t)
+                adjustCounters(shots = 0, grams = delta, t)
+            }
+        }
+    }
+
+    /**
+     * Deletes a shot logged by mistake and gives back what it used: grams to the
+     * bag, one shot on the machine counter, the dose on the grinder counter.
+     * Returns it for undo, which is [logShot] again.
+     */
+    suspend fun deleteShot(id: String): Shot? = withContext(io) {
+        db.transactionWithResult {
+            val shot = read(SyncCollections.SHOTS, id, Shot.serializer()) ?: return@transactionWithResult null
+            val t = now()
+            tombstone(SyncCollections.SHOTS, id)
+            adjustBag(shot.beanId, shot.doseGrams, t)
+            adjustCounters(shots = -1, grams = -shot.doseGrams, t)
+            shot
+        }
+    }
+
+    private fun adjustBag(beanId: String, grams: Double, t: Instant) {
+        read(SyncCollections.BEANS, beanId, Bean.serializer())?.let { b ->
+            val left = (b.remainingGrams + grams).coerceIn(0.0, b.weightGrams.toDouble())
+            write(SyncCollections.BEANS, Bean.serializer(), b.copy(remainingGrams = left, updatedAt = t))
+        }
+    }
+
+    private fun adjustCounters(shots: Int, grams: Double, t: Instant) {
+        allLive(SyncCollections.EQUIPMENT, Equipment.serializer()).forEach { e ->
+            val updated = when (e.kind) {
+                EquipmentKind.MACHINE -> if (shots == 0) null else e.copy(shotCount = (e.shotCount + shots).coerceAtLeast(0))
+                EquipmentKind.GRINDER -> e.copy(groundKg = (e.groundKg + grams / 1000.0).coerceAtLeast(0.0))
+            }
+            updated?.let { write(SyncCollections.EQUIPMENT, Equipment.serializer(), it.copy(updatedAt = t)) }
+        }
+    }
+
+    /**
      * Makes a good shot the baseline. With [overwrite] it replaces the shot's
      * recipe; otherwise (or without one) it becomes a new recipe named [newName].
      * Either way the bean is brewed with that recipe from now on.

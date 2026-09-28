@@ -79,7 +79,8 @@ fun ScreenTitle(title: String, trailing: String? = null, trailingColor: Color = 
     }
 }
 
-val TasteLabels = listOf("Sauer", "Etwas sauer", "Ausgewogen", "Leicht bitter", "Bitter")
+/** One wording for the taste scale everywhere (shot, history, chart, today). */
+val TasteLabels = listOf("Sauer", "Leicht sauer", "Ausgewogen", "Leicht bitter", "Bitter")
 
 @Composable
 fun tasteColor(index: Int): Color = with(Drops.colors) { listOf(accent, heroAccent, ok, muted, ink)[index] }

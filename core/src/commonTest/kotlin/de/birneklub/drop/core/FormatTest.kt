@@ -7,6 +7,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class FormatTest {
+    /** Expected text with normal spaces; the formatter uses no-break spaces before units. */
+    private fun nb(s: String) = s.replace(' ', '\u00A0')
+
     @Test
     fun numbersUseGermanSeparators() {
         assertEquals("15,0", Format.number(15.0))
@@ -29,16 +32,16 @@ class FormatTest {
 
     @Test
     fun unitsAndCompositeValues() {
-        assertEquals("18,0 → 36,0 g", Format.doseToYield(18.0, 36.0))
+        assertEquals("18,0\u00A0→ 36,0\u00A0g", Format.doseToYield(18.0, 36.0), "may wrap only after the arrow")
         assertEquals("1:2,0", Format.ratio(18.0, 36.0))
         assertEquals("1:2,1", Format.ratio(18.0, 38.0))
         assertEquals("4,5/5", Format.rating(4.5))
-        assertEquals("27 s", Format.seconds(27.4))
-        assertEquals("27,4 s", Format.seconds(27.4, 1))
-        assertEquals("26–30 s", Format.secondsRange(26, 30))
-        assertEquals("93 °C", Format.celsius(93))
-        assertEquals("16,50 €", Format.euros(1650))
-        assertEquals("21,6 kg", Format.kilograms(21.6))
+        assertEquals(nb("27 s"), Format.seconds(27.4))
+        assertEquals(nb("27,4 s"), Format.seconds(27.4, 1))
+        assertEquals(nb("26–30 s"), Format.secondsRange(26, 30))
+        assertEquals(nb("93 °C"), Format.celsius(93))
+        assertEquals(nb("16,50 €"), Format.euros(1650))
+        assertEquals(nb("21,6 kg"), Format.kilograms(21.6))
         assertEquals("11.09.2026", Format.date(LocalDate(2026, 9, 11)))
     }
 

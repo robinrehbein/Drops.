@@ -7,12 +7,14 @@ import kotlin.math.roundToLong
 
 /**
  * The one place that turns numbers into text for the user: German format with
- * decimal comma and thousands dot, units with a space ("93 °C", "27 s"). Missing
+ * decimal comma and thousands dot, units after a no-break space ("93 °C", "27 s"). Missing
  * or impossible values (null, NaN, infinity) become [MISSING], never "NaN" or
  * "Infinity".
  */
 object Format {
     const val MISSING = "–"
+    /** No-break space: a number never wraps away from its unit ("93 °C"). */
+    const val NBSP = "\u00A0"
     private const val SEP = " · "
 
     /** 15.0 → "15,0"; 1284.0 with 0 decimals → "1.284". */
@@ -45,10 +47,10 @@ object Format {
     fun grind(value: Double?): String = compact(value)
 
     /** "26–30 s" */
-    fun secondsRange(min: Int, max: Int): String = if (min == max) seconds(min) else "${integer(min)}–${integer(max)} s"
+    fun secondsRange(min: Int, max: Int): String = if (min == max) seconds(min) else "${integer(min)}–${integer(max)}${NBSP}s"
 
     /** "18,0 → 36,0 g" */
-    fun doseToYield(dose: Double, yield: Double): String = "${number(dose)} → ${grams(yield)}"
+    fun doseToYield(dose: Double, yield: Double): String = "${number(dose)}$NBSP→ ${grams(yield)}"
 
     /** Brew ratio "1:2,0"; without a dose there is no ratio. */
     fun ratio(dose: Double, yield: Double): String = if (dose > 0 && yield >= 0) "1:${number(yield / dose)}" else MISSING
@@ -73,7 +75,7 @@ object Format {
     /** Parses what a user typed: "16,5", "16.5" and " 16 " are all fine; anything else is null. */
     fun parseDecimal(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
 
-    private fun unit(number: String, unit: String) = if (number == MISSING) MISSING else "$number $unit"
+    private fun unit(number: String, unit: String) = if (number == MISSING) MISSING else "$number$NBSP$unit"
 
     private fun group(value: Long): String = value.toString().reversed().chunked(3).joinToString(".").reversed()
 }

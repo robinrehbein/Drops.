@@ -52,7 +52,7 @@ fun RecipeScreen(vm: DropsViewModel, nav: NavController, beanId: String, recipeI
     val base: Recipe? = recipeId?.let { id -> lib.recipes.firstOrNull { it.id == id } }
     if (recipeId != null && base == null) {
         // Deleted meanwhile (undo window, other device): nothing left to edit.
-        if (lib.loaded) nav.popBackStack()
+        if (lib.loaded) androidx.compose.runtime.LaunchedEffect(Unit) { nav.popBackStack() }
         return
     }
     val source = copyOf?.let { id -> lib.recipes.firstOrNull { it.id == id } }
