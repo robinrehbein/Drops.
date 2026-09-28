@@ -32,6 +32,9 @@ object Countries {
         Triple("China", listOf("china", "yunnan"), GeoPoint(23.0, 101.0)),
     )
 
+    /** German names in catalog order, for pickers. */
+    val names: List<String> get() = all.map { it.first }
+
     /** German name and map point for [name], or null if unknown. */
     fun lookup(name: String): Pair<String, GeoPoint>? {
         val n = name.trim().lowercase()

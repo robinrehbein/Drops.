@@ -249,7 +249,7 @@ private fun FreshnessBar(days: Int) {
 }
 
 fun processLabel(p: de.birneklub.drop.core.model.Process) = when (p) {
-    de.birneklub.drop.core.model.Process.WASHED -> "Washed"
+    de.birneklub.drop.core.model.Process.WASHED -> "Gewaschen"
     de.birneklub.drop.core.model.Process.NATURAL -> "Natural"
     de.birneklub.drop.core.model.Process.HONEY -> "Honey"
     de.birneklub.drop.core.model.Process.ANAEROBIC -> "Anaerob"

@@ -69,7 +69,7 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
     val bean = lib.bean(beanId)
     val c = Drops.colors
     if (bean == null) {
-        Box(Modifier.fillMaxSize().background(c.paper))
+        if (lib.loaded) MissingBean(nav)
         return
     }
     val recipes = lib.recipesFor(bean.id)
@@ -99,6 +99,10 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                             bean.status == BeanStatus.FROZEN -> PillButton("Dose auftauen", { vm.thawDose(bean) }, kind = ButtonKind.GhostOnHero, height = 40.dp)
                             !bean.inHopper -> PillButton("In den Trichter", { vm.putInHopper(bean) }, kind = ButtonKind.GhostOnHero, height = 40.dp)
                         }
+                        Box(
+                            Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).background(c.heroLine).clickable(role = Role.Button) { nav.navigate(Routes.editBean(bean.id)) }.a11y("Bohne bearbeiten"),
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(DropsIcons.Edit, null, tint = c.heroInk, size = 20.dp) }
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
