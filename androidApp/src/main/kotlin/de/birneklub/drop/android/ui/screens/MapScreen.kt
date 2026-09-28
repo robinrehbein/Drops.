@@ -1,5 +1,7 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.android.ui.Routes
+import androidx.navigation.NavController
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -154,7 +156,7 @@ fun placeFilterMatches(p: DiscoverCatalog.Place, filter: Int) = when (filter) {
 }
 
 @Composable
-fun MapScreen(vm: DropsViewModel, initialMode: MapMode = MapMode.ORIGIN) {
+fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = MapMode.ORIGIN) {
     val lib by vm.library.collectAsStateWithLifecycle()
     var mode by rememberSaveable { mutableStateOf(initialMode) }
     var layer by rememberSaveable { mutableStateOf(DiscoverLayer.NEARBY) }
@@ -339,9 +341,20 @@ fun MapScreen(vm: DropsViewModel, initialMode: MapMode = MapMode.ORIGIN) {
                         Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(if (on) c.inverse else c.accent))
                         Column(Modifier.weight(1f)) {
                             Text(p.title, style = DropsType.bodyStrong, color = c.ink)
-                            Text(if (on) p.beans.joinToString(", ") { it.name } else p.subtitle, style = DropsType.small, color = c.muted)
+                            if (!on) Text(p.subtitle, style = DropsType.small, color = c.muted)
                         }
                         Text("${p.weight} ${if (p.weight == 1) "Röstung" else "Röstungen"}", style = DropsType.small.copy(fontFamily = MonoFamily), color = c.muted)
+                    }
+                    // The selected pin lists its beans; each one opens.
+                    if (on) p.beans.forEach { b ->
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Button) { nav.navigate(Routes.bean(b.id)) }
+                                .padding(start = 32.dp, end = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(b.name, style = DropsType.body, color = c.accent, modifier = Modifier.weight(1f))
+                            Text("›", style = DropsType.headline, color = c.muted)
+                        }
                     }
                 }
             }

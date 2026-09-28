@@ -1,5 +1,8 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.activity.compose.BackHandler
+import de.birneklub.drop.core.domain.BrewLimits
+import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.ConfirmDialog
 import de.birneklub.drop.core.domain.RecipeDraft
 import de.birneklub.drop.core.format.Format
@@ -74,7 +77,10 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
     val bean = lib.bean(beanId) ?: lib.hopperBean
     val c = Drops.colors
     val reduced = rememberReducedMotion()
-    if (bean == null) return
+    if (bean == null) {
+        if (lib.loaded) NoBeanForShot(nav, hasBeans = lib.beans.isNotEmpty())
+        return
+    }
     val recipe: Recipe? = lib.selectedRecipe(bean)
 
     var elapsed by rememberSaveable { mutableDoubleStateOf(0.0) }
@@ -92,6 +98,10 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
     var taste by rememberSaveable { mutableIntStateOf(Taste.BALANCED.ordinal) }
     var saved by remember { mutableStateOf<Shot?>(null) }
     var adopting by rememberSaveable { mutableStateOf(false) }
+    var leaving by rememberSaveable { mutableStateOf(false) }
+    // A shot in progress is not thrown away by a stray tap or the back gesture.
+    val unsaved = saved == null && (running || elapsed > 0)
+    BackHandler(enabled = unsaved) { leaving = true }
 
     LaunchedEffect(running) {
         if (!running) return@LaunchedEffect
@@ -109,7 +119,7 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
     Column(Modifier.fillMaxSize().background(c.paper).statusBarsPadding().navigationBarsPadding()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                TextAction("Abbrechen", { nav.popBackStack() })
+                TextAction("Abbrechen", { if (unsaved) leaving = true else nav.popBackStack() })
                 Eyebrow("Shot #${(lib.equipment.firstOrNull { it.shotCount > 0 }?.shotCount ?: 0) + 1}")
                 Box(Modifier.size(72.dp, 1.dp))
             }
@@ -156,12 +166,12 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Stepper("Dosis", Format.grams(dose), Modifier.weight(1f), { dose = round1(dose + 0.1) }, { dose = round1(dose - 0.1) })
-                    Stepper("Ertrag", Format.grams(yieldG), Modifier.weight(1f), { yieldG = round1(yieldG + 0.5) }, { yieldG = round1(yieldG - 0.5) })
+                    Stepper("Dosis", Format.grams(dose), Modifier.weight(1f), { dose = round1(dose + 0.1).coerceIn(BrewLimits.dose) }, { dose = round1(dose - 0.1).coerceIn(BrewLimits.dose) })
+                    Stepper("Ertrag", Format.grams(yieldG), Modifier.weight(1f), { yieldG = round1(yieldG + 0.5).coerceIn(BrewLimits.yield) }, { yieldG = round1(yieldG - 0.5).coerceIn(BrewLimits.yield) })
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Stepper(scale?.label?.takeIf { it == "Klicks" } ?: "Mahlgrad", Format.grind(grind), Modifier.weight(1f), { grind = nudge(grind, step, scale) }, { grind = nudge(grind, -step, scale) })
-                    Stepper("Temperatur", "$temp °C", Modifier.weight(1f), { temp++ }, { temp-- })
+                    Stepper("Temperatur", Format.celsius(temp), Modifier.weight(1f), { temp = (temp + 1).coerceIn(BrewLimits.temperature) }, { temp = (temp - 1).coerceIn(BrewLimits.temperature) })
                 }
                 Text(
                     "Verhältnis ${Format.ratio(dose, yieldG)} · Fluss ${if (elapsed > 0) "${Format.number(yieldG / elapsed)} g/s" else Format.MISSING}",
@@ -208,6 +218,16 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
             kind = ButtonKind.Ink,
             height = 56.dp,
+        )
+    }
+    if (leaving) {
+        ConfirmDialog(
+            title = "Shot verwerfen?",
+            text = "Die Zeit von ${Format.seconds(elapsed, 1)} und deine Angaben werden nicht gespeichert.",
+            confirm = "Verwerfen",
+            dismiss = "Weiter brühen",
+            onConfirm = { running = false; nav.popBackStack() },
+            onDismiss = { leaving = false },
         )
     }
     if (adopting && recipe != null) {
@@ -268,5 +288,21 @@ private fun Stepper(label: String, value: String, modifier: Modifier, onInc: () 
                 }
             }
         }
+    }
+}
+
+/** No bean to brew with: say why and offer the way out instead of a blank screen. */
+@Composable
+private fun NoBeanForShot(nav: NavController, hasBeans: Boolean) {
+    ScreenColumn {
+        TextAction("‹ Zurück", { if (!nav.popBackStack()) nav.navigate(Routes.TODAY) })
+        ScreenTitle(if (hasBeans) "Keine offene Tüte" else "Erst eine Bohne")
+        Text(
+            if (hasBeans) "Öffne eine Bohne oder leg den nächsten Beutel an, dann kannst du brühen."
+            else "Ein Shot gehört zu einer Bohne. Leg die Bohne an, die gerade im Trichter ist.",
+            style = DropsType.body, color = Drops.colors.muted,
+        )
+        PillButton("Bohne anlegen", { nav.navigate(Routes.ADD_BEAN) }, Modifier.fillMaxWidth(), kind = ButtonKind.Ink)
+        if (hasBeans) PillButton("Zu den Bohnen", { nav.navigate(Routes.BEANS) }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
     }
 }

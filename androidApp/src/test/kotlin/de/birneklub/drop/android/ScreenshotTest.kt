@@ -106,8 +106,8 @@ class ScreenshotTest(private val variant: Variant) {
     @Test fun shots() = shoot("07b_shots") { ShotsScreen(it, rememberNavController(), "sample-guji") }
     @Test fun editShot() = shoot("07c_edit_shot") { ShotEditScreen(it, rememberNavController(), "sample-s8") }
     @Test fun shot() = shoot("07_shot") { ShotScreen(it, rememberNavController(), "sample-guji") }
-    @Test fun map() = shoot("08_map") { MapScreen(it) }
-    @Test fun discover() = shoot("09_discover") { MapScreen(it, MapMode.DISCOVER) }
+    @Test fun map() = shoot("08_map") { MapScreen(it, rememberNavController()) }
+    @Test fun discover() = shoot("09_discover") { MapScreen(it, rememberNavController(), MapMode.DISCOVER) }
     @Test fun account() = shoot("10_account") { AccountScreen(it, rememberNavController()) }
     @Test fun roasterCard() = shoot("11_roaster_card") { RoasterCardScreen(it, rememberNavController(), card.encode()) }
 }

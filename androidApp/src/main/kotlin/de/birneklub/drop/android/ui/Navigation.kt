@@ -154,7 +154,7 @@ fun DropsRoot(container: AppContainer, deepLink: MutableStateFlow<String?> = Mut
         ) {
             composable(Routes.TODAY) { TodayScreen(vm, nav) }
             composable(Routes.BEANS) { BeansScreen(vm, nav) }
-            composable(Routes.MAP) { MapScreen(vm) }
+            composable(Routes.MAP) { MapScreen(vm, nav) }
             composable(Routes.SETUP) { SetupScreen(vm, nav) }
             composable(Routes.BEAN) { BeanDetailScreen(vm, nav, it.arguments?.getString("id").orEmpty()) }
             composable(Routes.SHOT) { ShotScreen(vm, nav, it.arguments?.getString("beanId").orEmpty()) }

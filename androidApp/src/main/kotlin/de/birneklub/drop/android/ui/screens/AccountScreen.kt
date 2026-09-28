@@ -75,7 +75,17 @@ fun AccountScreen(vm: DropsViewModel, nav: NavController) {
                 }
             }
             PillButton(if (state.busy) "Synchronisiere …" else "Jetzt synchronisieren", { vm.syncNow() }, Modifier.fillMaxWidth(), enabled = !state.busy, icon = DropsIcons.Refresh)
-            PillButton("Abmelden", { vm.logout() }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
+            var confirmLogout by rememberSaveable { mutableStateOf(false) }
+            PillButton("Abmelden", { confirmLogout = true }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
+            if (confirmLogout) {
+                de.birneklub.drop.android.ui.ConfirmDialog(
+                    title = "Abmelden?",
+                    text = "Deine Daten bleiben auf diesem Gerät, werden aber nicht mehr gesichert oder abgeglichen, bis du dich wieder anmeldest.",
+                    confirm = "Abmelden",
+                    onConfirm = { vm.logout() },
+                    onDismiss = { confirmLogout = false },
+                )
+            }
             var confirm by rememberSaveable { mutableStateOf(false) }
             if (!confirm) TextAction("Konto löschen", { confirm = true }, c.bad)
             AnimatedVisibility(confirm, enter = Motion.expandIn(reduced), exit = Motion.collapseOut(reduced)) {
