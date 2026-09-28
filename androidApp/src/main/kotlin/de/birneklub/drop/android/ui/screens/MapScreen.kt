@@ -154,9 +154,9 @@ fun placeFilterMatches(p: DiscoverCatalog.Place, filter: Int) = when (filter) {
 }
 
 @Composable
-fun MapScreen(vm: DropsViewModel) {
+fun MapScreen(vm: DropsViewModel, initialMode: MapMode = MapMode.ORIGIN) {
     val lib by vm.library.collectAsStateWithLifecycle()
-    var mode by rememberSaveable { mutableStateOf(MapMode.ORIGIN) }
+    var mode by rememberSaveable { mutableStateOf(initialMode) }
     var layer by rememberSaveable { mutableStateOf(DiscoverLayer.NEARBY) }
     var placeFilter by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableStateOf<String?>(null) }

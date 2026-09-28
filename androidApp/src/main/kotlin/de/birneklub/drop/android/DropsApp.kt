@@ -3,6 +3,7 @@ package de.birneklub.drop.android
 import android.app.Application
 import android.os.Build
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import de.birneklub.drop.data.BetaStats
 import de.birneklub.drop.data.DropsRepository
 import de.birneklub.drop.data.SyncClient
@@ -10,9 +11,9 @@ import de.birneklub.drop.data.createDatabase
 import de.birneklub.drop.data.defaultHttpEngine
 
 /** Manual dependency container; small enough that a DI framework would only add weight. */
-class AppContainer(val app: Application) {
+class AppContainer(val app: Application, clock: Clock = Clock.System) {
     private val database = createDatabase(app)
-    val repository = DropsRepository(database)
+    val repository = DropsRepository(database, clock)
     val sync = SyncClient(
         db = database,
         engine = defaultHttpEngine(),
