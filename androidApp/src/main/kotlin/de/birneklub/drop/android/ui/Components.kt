@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui
 
+import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,24 +38,17 @@ import androidx.compose.ui.unit.sp
 import de.birneklub.drop.core.domain.TaskState
 import de.birneklub.drop.core.domain.TaskStatus
 import de.birneklub.drop.core.model.IntervalUnit
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // --- text helpers --------------------------------------------------------------
 
-private val de = Locale.GERMANY
-
-fun Double.fmt(decimals: Int = 1): String = String.format(Locale.ROOT, "%.${decimals}f", this)
-fun Double.fmtDe(decimals: Int = 1): String = String.format(de, "%.${decimals}f", this)
-fun Int.grouped(): String = String.format(de, "%,d", this)
-fun euros(cents: Int?): String = cents?.let { String.format(de, "%.2f €", it / 100.0) } ?: "–"
 
 fun TaskStatus.label(): String {
     val unit = task.intervalUnit
     fun amount(v: Double) = when (unit) {
         IntervalUnit.DAYS -> v.roundToInt().let { "$it ${if (it == 1) "Tag" else "Tagen"}" }
-        IntervalUnit.KILOGRAMS -> "${v.fmtDe()} kg"
+        IntervalUnit.KILOGRAMS -> Format.kilograms(v)
         IntervalUnit.SHOTS -> "${v.roundToInt()} Shots"
     }
     return when (state) {
@@ -134,10 +128,10 @@ fun PillButton(
     val c = Drops.colors
     val (bg, fg, border) = when (kind) {
         ButtonKind.Accent -> Triple(c.accent, c.onAccent, null)
-        ButtonKind.Hero -> Triple(c.heroAccent, Color(0xFF1E1915), null)
+        ButtonKind.Hero -> Triple(c.heroAccent, c.onHeroAccent, null)
         ButtonKind.Ink -> Triple(c.inverse, c.onInverse, null)
         ButtonKind.Ghost -> Triple(Color.Transparent, c.ink, c.line)
-        ButtonKind.GhostOnHero -> Triple(Color.Transparent, c.heroInk, Color(0xFF5A4A3E))
+        ButtonKind.GhostOnHero -> Triple(Color.Transparent, c.heroInk, c.heroOutline)
     }
     val shape = RoundedCornerShape(height / 2)
     Row(
@@ -255,7 +249,7 @@ fun TaskRow(status: TaskStatus, compact: Boolean, onBuy: ((String) -> Unit)? = n
 
 fun intervalText(s: TaskStatus): String = when (s.task.intervalUnit) {
     IntervalUnit.DAYS -> "alle ${s.task.intervalValue.roundToInt()} Tage"
-    IntervalUnit.KILOGRAMS -> "alle ${s.task.intervalValue.fmtDe(0)} kg"
+    IntervalUnit.KILOGRAMS -> "alle ${Format.number(s.task.intervalValue, 0)} kg"
     IntervalUnit.SHOTS -> "alle ${s.task.intervalValue.roundToInt()} Shots"
 }
 

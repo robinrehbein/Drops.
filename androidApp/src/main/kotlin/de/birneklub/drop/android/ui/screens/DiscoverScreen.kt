@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -82,7 +83,7 @@ fun DiscoverContent(
                     val v = profile.scores[cat] ?: 0.0
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(categoryLabel(cat), style = DropsType.caption, color = c.heroMuted, modifier = Modifier.width(92.dp))
-                        ProgressBar(v.toFloat(), if (v >= 0.5) c.heroAccent else Color(0xFF8F8275), Modifier.weight(1f), track = c.heroLine)
+                        ProgressBar(v.toFloat(), if (v >= 0.5) c.heroAccent else c.heroFaint, Modifier.weight(1f), track = c.heroLine)
                     }
                 }
             }
@@ -130,7 +131,7 @@ fun DiscoverContent(
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(p.name, style = DropsType.bodyStrong, color = c.ink)
                                 Text(
-                                    if (p.distanceMeters < 1000) "${p.distanceMeters} m" else "${"%.1f".format(p.distanceMeters / 1000.0).replace('.', ',')} km",
+                                    if (p.distanceMeters < 1000) "${p.distanceMeters} m" else "${Format.number(p.distanceMeters / 1000.0)} km",
                                     style = DropsType.small.copy(fontFamily = MonoFamily), color = c.muted,
                                 )
                             }

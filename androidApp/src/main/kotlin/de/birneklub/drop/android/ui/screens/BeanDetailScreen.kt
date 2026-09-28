@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -56,8 +57,6 @@ import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.Segmented
 import de.birneklub.drop.android.ui.TextAction
 import de.birneklub.drop.android.ui.a11y
-import de.birneklub.drop.android.ui.euros
-import de.birneklub.drop.android.ui.fmt
 import de.birneklub.drop.core.model.BeanStatus
 import de.birneklub.drop.core.model.Recipe
 import de.birneklub.drop.core.model.Shot
@@ -89,9 +88,9 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                     ) { Icon(DropsIcons.Back, null, tint = c.heroInk, size = 20.dp) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         val (label, color) = when (bean.status) {
-                            BeanStatus.OPEN -> "Offen" to Color(0xFF3E6A55)
-                            BeanStatus.FROZEN -> "Eingefroren" to Color(0xFF2F5064)
-                            BeanStatus.ARCHIVED -> "Archiv" to Color(0xFF5A4A3E)
+                            BeanStatus.OPEN -> "Offen" to c.statusOpen
+                            BeanStatus.FROZEN -> "Eingefroren" to c.statusFrozen
+                            BeanStatus.ARCHIVED -> "Archiv" to c.statusArchived
                         }
                         Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(color).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
                             Text(label, style = DropsType.small.copy(fontSize = 13.sp), color = c.heroInk)
@@ -110,7 +109,7 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                 if (bean.tastingNotes.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         bean.tastingNotes.forEach {
-                            Text(it, style = DropsType.small, color = c.heroInk, modifier = Modifier.border(1.dp, Color(0xFF5A4A3E), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 6.dp))
+                            Text(it, style = DropsType.small, color = c.heroInk, modifier = Modifier.border(1.dp, c.heroOutline, RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 6.dp))
                         }
                     }
                 }
@@ -120,8 +119,8 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                 FactsGrid(
                     listOf(
                         "Aufbereitung" to (if (bean.process == Process.OTHER) "–" else processLabel(bean.process)), "Varietät" to bean.variety.ifBlank { "–" }, "Röstgrad" to bean.roastLevel.ifBlank { "–" },
-                        "Geröstet" to (bean.roastDate?.let { "%02d.%02d.%02d".format(it.dayOfMonth, it.monthNumber, it.year % 100) } ?: "–"),
-                        "Preis" to euros(bean.purchase?.priceCents), "Menge" to "${bean.weightGrams} g",
+                        "Geröstet" to Format.date(bean.roastDate),
+                        "Preis" to Format.euros(bean.purchase?.priceCents), "Menge" to Format.grams(bean.weightGrams.toDouble(), 0),
                     ),
                 )
 
@@ -150,7 +149,7 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text("Dein Urteil", style = DropsType.small, color = c.muted)
-                            Text("${bean.rating?.fmt() ?: "–"} / 5", style = DropsType.headline, color = c.ink)
+                            Text(Format.rating(bean.rating), style = DropsType.headline, color = c.ink)
                         }
                         Row {
                             (1..5).forEach { i ->
@@ -213,9 +212,9 @@ private fun RecipeCard(r: Recipe) {
     val c = Drops.colors
     DropsCard(Modifier.fillMaxWidth(), padding = PaddingValues(0.dp)) {
         val cells = listOf(
-            Triple("Mahlgrad", r.grindSetting.fmt(), true), Triple("RPM", r.rpm?.toString() ?: "–", false),
-            Triple("Dosis → Ertrag", "${r.doseGrams.fmt()} → ${r.yieldGrams.fmt()} g", false), Triple("Zeit", "${r.targetTimeMinSec}–${r.targetTimeMaxSec} s", false),
-            Triple("Brühtemperatur", "${r.temperatureC} °C", false), Triple("Pre-Infusion", r.preinfusion.ifBlank { "–" }, false),
+            Triple("Mahlgrad", Format.grind(r.grindSetting), true), Triple("RPM", Format.integer(r.rpm), false),
+            Triple("Dosis → Ertrag", Format.doseToYield(r.doseGrams, r.yieldGrams), false), Triple("Zeit", Format.secondsRange(r.targetTimeMinSec, r.targetTimeMaxSec), false),
+            Triple("Brühtemperatur", Format.celsius(r.temperatureC), false), Triple("Pre-Infusion", r.preinfusion.ifBlank { "–" }, false),
         )
         cells.chunked(2).forEach { row ->
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -229,7 +228,7 @@ private fun RecipeCard(r: Recipe) {
         }
         de.birneklub.drop.android.ui.Divider()
         Text(
-            listOf(r.equipmentNotes, "Ratio 1:${r.ratio.fmt(2)}").filter { it.isNotBlank() }.joinToString(" · "),
+            Format.join(r.equipmentNotes, "Verhältnis ${Format.ratio(r.doseGrams, r.yieldGrams)}"),
             style = DropsType.small, color = c.muted, modifier = Modifier.padding(16.dp),
         )
     }
@@ -247,9 +246,9 @@ private fun DialInChart(shots: List<Shot>) {
         DropsCard(Modifier.fillMaxWidth()) {
             Row {
                 Column(Modifier.height(120.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                    listOf(max, (max + min) / 2, min).forEach { Text(it.fmt(), style = DropsType.caption.copy(fontFamily = MonoFamily, fontSize = 10.sp), color = c.muted) }
+                    listOf(max, (max + min) / 2, min).forEach { Text(Format.grind(it), style = DropsType.caption.copy(fontFamily = MonoFamily, fontSize = 10.sp), color = c.muted) }
                 }
-                Canvas(Modifier.weight(1f).height(120.dp).padding(start = 8.dp).a11y("Mahlgrad von ${grinds.first().fmt()} auf ${grinds.last().fmt()}")) {
+                Canvas(Modifier.weight(1f).height(120.dp).padding(start = 8.dp).a11y("Mahlgrad von ${Format.grind(grinds.first())} auf ${Format.grind(grinds.last())}")) {
                     val pad = 8.dp.toPx()
                     fun x(i: Int) = pad + if (shots.size == 1) 0f else i * (size.width - 2 * pad) / (shots.size - 1)
                     fun y(g: Double) = (pad + (max - g) / (max - min) * (size.height - 2 * pad)).toFloat()

@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,6 @@ import de.birneklub.drop.android.ui.Eyebrow
 import de.birneklub.drop.android.ui.PillButton
 import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.TextAction
-import de.birneklub.drop.android.ui.fmt
 import de.birneklub.drop.core.roaster.RoasterCard
 
 /** Preview of a scanned roaster card before it becomes a bean with a recipe. */
@@ -45,10 +45,10 @@ fun RoasterCardScreen(vm: DropsViewModel, nav: NavController, payload: String) {
         }
         DropsCard(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Fact("Dosis", "${card.doseGrams.fmt()} g")
-                Fact("Ertrag", "${card.yieldGrams.fmt()} g")
-                Fact("Zeit", "${card.timeMinSec}–${card.timeMaxSec} s")
-                Fact("Temp.", "${card.temperatureC} °C")
+                Fact("Dosis", Format.grams(card.doseGrams))
+                Fact("Ertrag", Format.grams(card.yieldGrams))
+                Fact("Zeit", Format.secondsRange(card.timeMinSec, card.timeMaxSec))
+                Fact("Temp.", Format.celsius(card.temperatureC))
             }
             if (card.hint.isNotBlank()) Text(card.hint, style = DropsType.small, color = c.ink, modifier = Modifier.padding(top = 12.dp))
         }

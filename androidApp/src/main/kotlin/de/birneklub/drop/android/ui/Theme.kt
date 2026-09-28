@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import de.birneklub.drop.android.R
@@ -47,7 +48,22 @@ data class DropsColors(
     val sea: Color,
     val land: Color,
     val landLine: Color,
+    /** Text on [heroAccent] buttons. */
+    val onHeroAccent: Color,
+    /** Outlines and non-text marks on [hero] surfaces. */
+    val heroOutline: Color,
+    val heroFaint: Color,
+    /** Espresso window on the freshness bar. */
+    val heroWindow: Color,
+    /** Bean status badges on the hero header (text in [heroInk]). */
+    val statusOpen: Color,
+    val statusFrozen: Color,
+    val statusArchived: Color,
+    /** Bag swatches in the bean list (text in [heroInk]). */
+    val bags: List<Color>,
 )
+
+private val BagColors = listOf(0xFF2A211B, 0xFF7A4B2A, 0xFF5B2E2A, 0xFF8C3F4A, 0xFF3E4A2F, 0xFF4A3226, 0xFF2F3A4A, 0xFF6B2A3A).map { Color(it) }
 
 val LightDropsColors = DropsColors(
     paper = Color(0xFFF3EEE5), surface = Color(0xFFFBF8F3), ink = Color(0xFF1E1915), muted = Color(0xFF62574D),
@@ -57,6 +73,8 @@ val LightDropsColors = DropsColors(
     warnSoft = Color(0xFFF1DFD0), bad = Color(0xFF9B2C20), badSoft = Color(0xFFF4D9D3), ice = Color(0xFF2F5064),
     iceSoft = Color(0xFFDDE6EC), inverse = Color(0xFF1E1915), onInverse = Color(0xFFFBF8F3),
     sea = Color(0xFFE4EAE8), land = Color(0xFFF7F2EA), landLine = Color(0xFFCFC4B4),
+    onHeroAccent = Color(0xFF1E1915), heroOutline = Color(0xFF5A4A3E), heroFaint = Color(0xFF8F8275), heroWindow = Color(0xFF6B4A33),
+    statusOpen = Color(0xFF3E6A55), statusFrozen = Color(0xFF2F5064), statusArchived = Color(0xFF5A4A3E), bags = BagColors,
 )
 
 val DarkDropsColors = DropsColors(
@@ -67,6 +85,8 @@ val DarkDropsColors = DropsColors(
     warnSoft = Color(0xFF3A2618), bad = Color(0xFFE88A7C), badSoft = Color(0xFF3A1C18), ice = Color(0xFF9CC0D6),
     iceSoft = Color(0xFF1D2A33), inverse = Color(0xFFF2E9DF), onInverse = Color(0xFF1E1915),
     sea = Color(0xFF1A2123), land = Color(0xFF2A221D), landLine = Color(0xFF4A3E35),
+    onHeroAccent = Color(0xFF1E1915), heroOutline = Color(0xFF5A4A3E), heroFaint = Color(0xFF8F8275), heroWindow = Color(0xFF6B4A33),
+    statusOpen = Color(0xFF3E6A55), statusFrozen = Color(0xFF2F5064), statusArchived = Color(0xFF5A4A3E), bags = BagColors,
 )
 
 val LocalDropsColors = staticCompositionLocalOf { LightDropsColors }
@@ -99,6 +119,20 @@ object DropsType {
     val number = TextStyle(fontFamily = MonoFamily, fontSize = 18.sp)
     val numberLarge = TextStyle(fontFamily = MonoFamily, fontSize = 24.sp, fontWeight = FontWeight.Medium)
     val eyebrow = TextStyle(fontFamily = MonoFamily, fontSize = 11.sp, letterSpacing = 0.12.em)
+}
+
+/** Spacing scale in dp; every padding and gap comes from here. */
+object Space {
+    val xxs = 2.dp
+    val xs = 4.dp
+    val s = 8.dp
+    val m = 12.dp
+    val l = 16.dp
+    val xl = 20.dp
+    val xxl = 24.dp
+    val xxxl = 32.dp
+    /** Minimum touch target (Material, WCAG 2.5.8). */
+    val touch = 48.dp
 }
 
 object Drops {

@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +58,6 @@ import de.birneklub.drop.android.ui.PillButton
 import de.birneklub.drop.android.ui.Segmented
 import de.birneklub.drop.android.ui.TextAction
 import de.birneklub.drop.android.ui.a11y
-import de.birneklub.drop.android.ui.fmt
 import de.birneklub.drop.core.domain.DialIn
 import de.birneklub.drop.core.model.EquipmentKind
 import de.birneklub.drop.core.model.GrindScale
@@ -125,7 +125,7 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
 
             // Timer ring with target window
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(220.dp).a11y("Laufzeit ${elapsed.fmt()} Sekunden, Ziel $tmin bis $tmax"), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(220.dp).a11y("Laufzeit ${Format.number(elapsed)} Sekunden, Ziel $tmin bis $tmax Sekunden"), contentAlignment = Alignment.Center) {
                     Canvas(Modifier.fillMaxSize()) {
                         val stroke = 12.dp.toPx()
                         val inset = stroke / 2
@@ -136,7 +136,7 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                         drawArc(if (inZone) c.ok else c.accent, -90f, (elapsed / 40.0).coerceAtMost(1.0).toFloat() * 360f, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(elapsed.fmt(), style = DropsType.numberLarge.copy(fontSize = 56.sp), color = c.ink)
+                        Text(Format.number(elapsed), style = DropsType.numberLarge.copy(fontSize = 56.sp), color = c.ink)
                         Text("Ziel $tmin–$tmax s", style = DropsType.small, color = c.muted)
                     }
                 }
@@ -153,15 +153,15 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Stepper("Dosis", "${dose.fmt()} g", Modifier.weight(1f), { dose = round1(dose + 0.1) }, { dose = round1(dose - 0.1) })
-                    Stepper("Ertrag", "${yieldG.fmt()} g", Modifier.weight(1f), { yieldG = round1(yieldG + 0.5) }, { yieldG = round1(yieldG - 0.5) })
+                    Stepper("Dosis", Format.grams(dose), Modifier.weight(1f), { dose = round1(dose + 0.1) }, { dose = round1(dose - 0.1) })
+                    Stepper("Ertrag", Format.grams(yieldG), Modifier.weight(1f), { yieldG = round1(yieldG + 0.5) }, { yieldG = round1(yieldG - 0.5) })
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Stepper(scale?.label?.takeIf { it == "Klicks" } ?: "Mahlgrad", grind.fmt(2).trimEnd('0').trimEnd('.'), Modifier.weight(1f), { grind = nudge(grind, step, scale) }, { grind = nudge(grind, -step, scale) })
+                    Stepper(scale?.label?.takeIf { it == "Klicks" } ?: "Mahlgrad", Format.grind(grind), Modifier.weight(1f), { grind = nudge(grind, step, scale) }, { grind = nudge(grind, -step, scale) })
                     Stepper("Temperatur", "$temp °C", Modifier.weight(1f), { temp++ }, { temp-- })
                 }
                 Text(
-                    "Ratio 1:${(yieldG / dose).fmt(2)} · Flow ${if (elapsed > 0) (yieldG / elapsed).fmt() else "–"} g/s",
+                    "Verhältnis ${Format.ratio(dose, yieldG)} · Fluss ${if (elapsed > 0) "${Format.number(yieldG / elapsed)} g/s" else Format.MISSING}",
                     style = DropsType.small.copy(fontFamily = MonoFamily), color = c.muted, modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
             }
@@ -215,10 +215,10 @@ private fun nudge(grind: Double, delta: Double, scale: GrindScale?): Double {
 
 private fun adviceText(a: de.birneklub.drop.core.domain.DialInAdvice, grind: Double): String {
     val parts = mutableListOf<String>()
-    if (a.grindDelta < 0) parts += "${(-a.grindDelta).fmt(2).trimEnd('0').trimEnd('.')} feiner mahlen (${(grind + a.grindDelta).fmt(2).trimEnd('0').trimEnd('.')})"
-    if (a.grindDelta > 0) parts += "${a.grindDelta.fmt(2).trimEnd('0').trimEnd('.')} gröber mahlen (${(grind + a.grindDelta).fmt(2).trimEnd('0').trimEnd('.')})"
+    if (a.grindDelta < 0) parts += "${Format.grind(-a.grindDelta)} feiner mahlen (${Format.grind(grind + a.grindDelta)})"
+    if (a.grindDelta > 0) parts += "${Format.grind(a.grindDelta)} gröber mahlen (${Format.grind(grind + a.grindDelta)})"
     if (a.temperatureDelta != 0) parts += "Temperatur ${if (a.temperatureDelta > 0) "+" else ""}${a.temperatureDelta} °C"
-    if (a.yieldDeltaGrams != 0.0) parts += "oder ${-a.yieldDeltaGrams} g weniger Ertrag"
+    if (a.yieldDeltaGrams != 0.0) parts += "oder ${Format.grams(-a.yieldDeltaGrams)} weniger Ertrag"
     val speed = when { a.ranFast -> " Lief zu schnell."; a.ranSlow -> " Lief zu lang."; else -> "" }
     return when {
         a.adoptAsRecipe -> "Treffer. Speichern und als Rezept übernehmen."
