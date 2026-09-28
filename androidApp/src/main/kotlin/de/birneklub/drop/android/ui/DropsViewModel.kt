@@ -391,7 +391,7 @@ class DropsViewModel(private val container: AppContainer) : ViewModel() {
             if (!silent) _account.value = _account.value.copy(busy = true, error = null)
             try {
                 val result = sync.sync()
-                _account.value = _account.value.copy(busy = false, error = null, lastSyncMessage = "Synchronisiert: ${result.pushed} hoch, ${result.pulled} runter")
+                _account.value = _account.value.copy(busy = false, error = null, lastSyncMessage = "Abgeglichen: ${result.pushed} gesendet, ${result.pulled} empfangen")
             } catch (e: SyncException) {
                 _account.value = _account.value.copy(busy = false, error = e.message)
             }
