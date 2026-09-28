@@ -189,12 +189,13 @@ fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, textStyle: TextStyle = DropsType.bodyStrong.copy(fontSize = 14.sp)) {
     val c = Drops.colors
-    Row(modifier.clip(RoundedCornerShape(14.dp)).background(c.track).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        options.forEachIndexed { i, label ->
+    // More than two options do not fit side by side with large text: they stack.
+    val stacked = rememberLargeFont() && options.size > 2
+    val container = modifier.clip(RoundedCornerShape(14.dp)).background(c.track).padding(4.dp)
+    val option: @Composable (Modifier, Int, String) -> Unit = { m, i, label ->
             val on = i == selected
             Box(
-                Modifier
-                    .weight(1f)
+                m
                     .heightIn(min = Space.touch)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (on) c.surface else Color.Transparent)
@@ -202,7 +203,11 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
                     .clickable(role = Role.Tab) { onSelect(i) },
                 contentAlignment = Alignment.Center,
             ) { Text(label, style = textStyle, color = if (on) c.ink else c.muted, textAlign = TextAlign.Center) }
-        }
+    }
+    if (stacked) {
+        Column(container, verticalArrangement = Arrangement.spacedBy(4.dp)) { options.forEachIndexed { i, l -> option(Modifier.fillMaxWidth(), i, l) } }
+    } else {
+        Row(container, horizontalArrangement = Arrangement.spacedBy(4.dp)) { options.forEachIndexed { i, l -> option(Modifier.weight(1f), i, l) } }
     }
 }
 

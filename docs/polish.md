@@ -107,12 +107,12 @@ Datei: `ShotScreen.kt` · Screenshot: `07_shot`
 
 Datei: `MapScreen.kt` · Screenshot: `08_map`
 
-- [ ] Zahlen
-- [ ] Sprache
-- [ ] Layout
-- [ ] Design
-- [ ] Barrierefreiheit
-- [ ] Zustände
+- [x] Zahlen
+- [x] Sprache
+- [x] Layout
+- [x] Design
+- [x] Barrierefreiheit
+- [x] Zustände
 
 ### Entdecken
 
