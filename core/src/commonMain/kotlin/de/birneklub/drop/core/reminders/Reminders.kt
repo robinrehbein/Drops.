@@ -34,7 +34,7 @@ object Reminders {
     /** Open bags about to run out that the user has not ruled out rebuying. */
     fun runningLow(beans: List<Bean>, recipes: List<Recipe>): List<Pair<Bean, Int>> = beans
         .filter { it.status == BeanStatus.OPEN && it.frozenDoses == 0 && it.wouldRebuy != false }
-        .map { b -> b to shotsLeft(b, recipes.firstOrNull { it.beanId == b.id }?.doseGrams ?: DEFAULT_DOSE) }
+        .map { b -> b to shotsLeft(b, de.birneklub.drop.core.domain.Recipes.selected(b, recipes)?.doseGrams ?: DEFAULT_DOSE) }
         .filter { (_, left) -> left <= LOW_SHOTS }
         .sortedBy { it.second }
 

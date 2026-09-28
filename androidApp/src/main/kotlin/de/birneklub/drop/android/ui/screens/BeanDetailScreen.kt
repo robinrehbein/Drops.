@@ -78,8 +78,7 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
         return
     }
     val recipes = lib.recipesFor(bean.id)
-    var recipeIndex by rememberSaveable { mutableIntStateOf(0) }
-    val recipe = recipes.getOrNull(recipeIndex.coerceAtMost(recipes.lastIndex))
+    val recipe = lib.selectedRecipe(bean)
     val shots = lib.shotsFor(bean.id)
 
     Column(Modifier.fillMaxSize().background(c.paper)) {
@@ -136,19 +135,21 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Rezepte", style = DropsType.title.copy(fontSize = 28.sp), color = c.ink)
-                        TextAction("+ Neu", {
-                            val base = recipe ?: Recipe(vm.newId(), bean.id, "Espresso", 15.0, 1200, 18.0, 36.0, 26, 30, 93, updatedAt = vm.now())
-                            vm.saveRecipe(base.copy(id = vm.newId(), name = "Rezept ${recipes.size + 1}"), "Rezept angelegt")
-                            recipeIndex = recipes.size
-                        })
+                        TextAction("+ Neu", { nav.navigate(Routes.recipe(bean.id)) })
                     }
                     if (recipe == null) {
-                        DropsCard(Modifier.fillMaxWidth()) { Text("Noch kein Rezept. Brüh einen Shot und übernimm ihn als Rezept.", style = DropsType.body, color = c.muted) }
+                        DropsCard(Modifier.fillMaxWidth()) {
+                            Text("Noch kein Rezept. Leg eins an oder brüh einen Shot und übernimm ihn als Rezept.", style = DropsType.body, color = c.muted)
+                        }
                     } else {
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            recipes.forEachIndexed { i, r -> Chip(r.name, r.id == recipe.id) { recipeIndex = i } }
+                            recipes.forEach { r -> Chip(r.name, r.id == recipe.id) { vm.selectRecipe(bean, r) } }
                         }
                         RecipeCard(recipe)
+                        Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                            TextAction("Bearbeiten", { nav.navigate(Routes.recipe(bean.id, recipe.id)) })
+                            TextAction("Kopieren", { nav.navigate(Routes.recipe(bean.id, copyOf = recipe.id)) })
+                        }
                     }
                 }
 

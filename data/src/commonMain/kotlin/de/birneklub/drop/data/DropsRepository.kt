@@ -166,21 +166,48 @@ class DropsRepository(
         }
     }
 
-    /** Makes a good shot the new baseline for its recipe (or creates one). */
-    suspend fun adoptShotAsRecipe(shot: Shot, recipeName: String = "Espresso") = withContext(io) {
-        val existing = shot.recipeId?.let { read(SyncCollections.RECIPES, it, Recipe.serializer()) }
-        val t = now()
-        val recipe = existing?.copy(
-            grindSetting = shot.grindSetting, doseGrams = shot.doseGrams, yieldGrams = shot.yieldGrams,
-            temperatureC = shot.temperatureC, updatedAt = t,
-        ) ?: Recipe(
-            id = newId(), beanId = shot.beanId, name = recipeName, grindSetting = shot.grindSetting,
-            doseGrams = shot.doseGrams, yieldGrams = shot.yieldGrams,
-            targetTimeMinSec = (shot.timeSec - 1).toInt(), targetTimeMaxSec = (shot.timeSec + 1).toInt(),
-            temperatureC = shot.temperatureC, updatedAt = t,
-        )
-        write(SyncCollections.RECIPES, Recipe.serializer(), recipe)
-        recipe
+    /**
+     * Makes a good shot the baseline. With [overwrite] it replaces the shot's
+     * recipe; otherwise (or without one) it becomes a new recipe named [newName].
+     * Either way the bean is brewed with that recipe from now on.
+     */
+    suspend fun adoptShotAsRecipe(shot: Shot, overwrite: Boolean = true, newName: String = "Espresso") = withContext(io) {
+        db.transactionWithResult {
+            val existing = shot.recipeId?.takeIf { overwrite }?.let { read(SyncCollections.RECIPES, it, Recipe.serializer()) }
+            val t = now()
+            val recipe = existing?.copy(
+                grindSetting = shot.grindSetting, doseGrams = shot.doseGrams, yieldGrams = shot.yieldGrams,
+                temperatureC = shot.temperatureC, updatedAt = t,
+            ) ?: Recipe(
+                id = newId(), beanId = shot.beanId, name = newName, grindSetting = shot.grindSetting,
+                doseGrams = shot.doseGrams, yieldGrams = shot.yieldGrams,
+                targetTimeMinSec = (shot.timeSec - 1).toInt(), targetTimeMaxSec = (shot.timeSec + 1).toInt(),
+                temperatureC = shot.temperatureC, updatedAt = t,
+            )
+            write(SyncCollections.RECIPES, Recipe.serializer(), recipe)
+            read(SyncCollections.BEANS, shot.beanId, Bean.serializer())?.takeIf { it.recipeId != recipe.id }?.let {
+                write(SyncCollections.BEANS, Bean.serializer(), it.copy(recipeId = recipe.id, updatedAt = t))
+            }
+            recipe
+        }
+    }
+
+    /** Brew the bean with this recipe from now on. */
+    suspend fun selectRecipe(beanId: String, recipeId: String) = withContext(io) {
+        val b = read(SyncCollections.BEANS, beanId, Bean.serializer()) ?: return@withContext
+        if (b.recipeId != recipeId) write(SyncCollections.BEANS, Bean.serializer(), b.copy(recipeId = recipeId, updatedAt = now()))
+    }
+
+    /** Deletes a recipe (tombstone for sync); returns it for undo. Shots keep their reference as history. */
+    suspend fun deleteRecipe(id: String): Recipe? = withContext(io) {
+        db.transactionWithResult {
+            val recipe = read(SyncCollections.RECIPES, id, Recipe.serializer()) ?: return@transactionWithResult null
+            tombstone(SyncCollections.RECIPES, id)
+            read(SyncCollections.BEANS, recipe.beanId, Bean.serializer())?.takeIf { it.recipeId == id }?.let {
+                write(SyncCollections.BEANS, Bean.serializer(), it.copy(recipeId = null, updatedAt = now()))
+            }
+            recipe
+        }
     }
 
     // --- equipment & maintenance -----------------------------------------

@@ -38,6 +38,8 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import de.birneklub.drop.android.ui.screens.RecipeScreen
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import de.birneklub.drop.android.AppContainer
@@ -64,6 +66,7 @@ object Routes {
     const val SHOT = "shot/{beanId}"
     const val ADD_BEAN = "add-bean"
     const val EDIT_BEAN = "bean/{id}/edit"
+    const val RECIPE = "recipe/{beanId}/{recipeId}?copy={copy}"
     const val ACCOUNT = "account"
     const val ONBOARDING = "onboarding"
     const val EQUIPMENT = "equipment/{kind}"
@@ -71,6 +74,9 @@ object Routes {
 
     fun bean(id: String) = "bean/$id"
     fun editBean(id: String) = "bean/$id/edit"
+    /** [recipeId] null = new recipe, [copyOf] = new recipe pre-filled from another one. */
+    fun recipe(beanId: String, recipeId: String? = null, copyOf: String? = null) =
+        "recipe/$beanId/${recipeId ?: "new"}" + (copyOf?.let { "?copy=$it" } ?: "")
     fun shot(beanId: String) = "shot/$beanId"
     fun equipment(kind: EquipmentKind) = "equipment/${kind.name}"
 }
@@ -141,6 +147,10 @@ fun DropsRoot(container: AppContainer, deepLink: MutableStateFlow<String?> = Mut
             composable(Routes.BEAN) { BeanDetailScreen(vm, nav, it.arguments?.getString("id").orEmpty()) }
             composable(Routes.SHOT) { ShotScreen(vm, nav, it.arguments?.getString("beanId").orEmpty()) }
             composable(Routes.ADD_BEAN) { AddBeanScreen(vm, nav) }
+            composable(Routes.RECIPE, arguments = listOf(navArgument("copy") { nullable = true; defaultValue = null })) {
+                val args = it.arguments
+                RecipeScreen(vm, nav, args?.getString("beanId").orEmpty(), args?.getString("recipeId")?.takeIf { id -> id != "new" }, args?.getString("copy"))
+            }
             composable(Routes.EDIT_BEAN) { AddBeanScreen(vm, nav, it.arguments?.getString("id").orEmpty()) }
             composable(Routes.ACCOUNT) { AccountScreen(vm, nav) }
             composable(Routes.ONBOARDING) { OnboardingScreen(vm, nav) }

@@ -283,4 +283,32 @@ class DataTest {
         repo.setStatus("sample-guji", de.birneklub.drop.core.model.BeanStatus.OPEN)
         assertEquals(de.birneklub.drop.core.model.BeanStatus.OPEN, repo.beans.first().single { it.id == "sample-guji" }.status)
     }
+
+    @Test
+    fun adoptingAShotAsksWhetherToOverwrite() = runTest {
+        val repo = repo()
+        repo.seedIfEmpty()
+        val shot = Shot("s-new", "sample-guji", "sample-r-guji", fixedNow, 14.0, 18.0, 40.0, 28.0, 94, Taste.BALANCED, fixedNow)
+        val copy = repo.adoptShotAsRecipe(shot, overwrite = false, newName = "Neu")
+        assertEquals("Neu", copy.name)
+        assertEquals(38.0, repo.recipes.first().single { it.id == "sample-r-guji" }.yieldGrams, "original untouched")
+        assertEquals(copy.id, repo.beans.first().single { it.id == "sample-guji" }.recipeId, "the new recipe is selected")
+        repo.adoptShotAsRecipe(shot, overwrite = true)
+        assertEquals(40.0, repo.recipes.first().single { it.id == "sample-r-guji" }.yieldGrams)
+        assertEquals("sample-r-guji", repo.beans.first().single { it.id == "sample-guji" }.recipeId)
+    }
+
+    @Test
+    fun deletingTheSelectedRecipeClearsTheChoice() = runTest {
+        val db = createDatabase()
+        val repo = repo(db)
+        repo.seedIfEmpty()
+        repo.selectRecipe("sample-guji", "sample-r-guji-cortado")
+        assertEquals("sample-r-guji-cortado", repo.beans.first().single { it.id == "sample-guji" }.recipeId)
+        val gone = assertNotNull(repo.deleteRecipe("sample-r-guji-cortado"))
+        assertNull(repo.beans.first().single { it.id == "sample-guji" }.recipeId)
+        assertEquals(1L, db.recordsQueries.byId("recipes", gone.id).executeAsOne().deleted)
+        repo.saveRecipe(gone)
+        assertNotNull(repo.recipes.first().firstOrNull { it.id == gone.id }, "undo restores it")
+    }
 }
