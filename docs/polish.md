@@ -118,12 +118,12 @@ Datei: `MapScreen.kt` · Screenshot: `08_map`
 
 Datei: `DiscoverScreen.kt` · Screenshot: `09_discover`
 
-- [ ] Zahlen
-- [ ] Sprache
-- [ ] Layout
-- [ ] Design
-- [ ] Barrierefreiheit
-- [ ] Zustände
+- [x] Zahlen
+- [x] Sprache
+- [x] Layout
+- [x] Design
+- [x] Barrierefreiheit
+- [x] Zustände
 
 ### Account
 

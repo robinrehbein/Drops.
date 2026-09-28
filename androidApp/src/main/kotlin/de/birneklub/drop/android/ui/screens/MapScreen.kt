@@ -146,7 +146,7 @@ fun discoverPins(layer: DiscoverLayer, placeFilter: Int): List<MapPin> = when (l
         MapPin("p:${it.id}", it.name, it.description, MapProjection.europe(it.location.lat, it.location.lon), 2, if (it.openNow) PinKind.OPEN else PinKind.CLOSED)
     } + MapPin("me", "Du", DiscoverCatalog.EXAMPLE_AREA, DiscoverCatalog.examplePosition.let { MapProjection.europe(it.lat, it.lon) }, 0, PinKind.ME)
     DiscoverLayer.RECOMMENDED -> DiscoverCatalog.recommendations.map {
-        MapPin("r:${it.id}", it.name, "${it.roaster} · ${it.roasterCity}", MapProjection.europe(it.roasterLocation.lat, it.roasterLocation.lon), 3, PinKind.RECOMMENDATION)
+        MapPin("r:${it.id}", it.name, Format.join(it.roaster, it.roasterCity), MapProjection.europe(it.roasterLocation.lat, it.roasterLocation.lon), 3, PinKind.RECOMMENDATION)
     }
     DiscoverLayer.TRAVEL -> DiscoverCatalog.cityGuides.map {
         MapPin("t:${it.id}", it.city, "${it.cafes} Cafés · ${it.roasters} Röstereien", MapProjection.europe(it.location.lat, it.location.lon), it.cafes / 5, PinKind.TRAVEL)
@@ -160,6 +160,7 @@ fun placeFilterMatches(p: DiscoverCatalog.Place, filter: Int) = when (filter) {
     else -> p.openNow
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = MapMode.ORIGIN) {
     val lib by vm.library.collectAsStateWithLifecycle()
@@ -295,10 +296,10 @@ fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = Map
                     DiscoverLayer.RECOMMENDED -> listOf(PinKind.RECOMMENDATION to "Rösterei des Vorschlags")
                     DiscoverLayer.TRAVEL -> listOf(PinKind.TRAVEL to "Städte-Guide")
                 }
-                Row(
-                    Modifier.align(Alignment.BottomStart).padding(12.dp).clip(RoundedCornerShape(12.dp)).background(c.surface)
-                        .border(1.dp, c.line, RoundedCornerShape(12.dp)).padding(horizontal = 10.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                androidx.compose.foundation.layout.FlowRow(
+                    Modifier.align(Alignment.BottomStart).padding(start = Space.m, bottom = Space.xl, end = 72.dp).clip(RoundedCornerShape(12.dp)).background(c.surface)
+                        .border(1.dp, c.line, RoundedCornerShape(12.dp)).padding(horizontal = Space.m, vertical = Space.xs),
+                    horizontalArrangement = Arrangement.spacedBy(Space.m),
                 ) {
                     legend.forEach { (kind, label) ->
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
