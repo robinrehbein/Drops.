@@ -1,5 +1,8 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.core.domain.AccountInput
+import androidx.compose.foundation.layout.heightIn
+import de.birneklub.drop.android.ui.Space
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +52,7 @@ fun AccountScreen(vm: DropsViewModel, nav: NavController) {
     val c = Drops.colors
     val reduced = rememberReducedMotion()
     ScreenColumn {
-        Row(verticalAlignment = Alignment.CenterVertically) { TextAction("‹ Zurück", { nav.popBackStack() }) }
+        TextAction("‹ Zurück", { nav.popBackStack() })
         ScreenTitle("Konto")
 
         DropsCard(Modifier.fillMaxWidth()) {
@@ -58,7 +61,7 @@ fun AccountScreen(vm: DropsViewModel, nav: NavController) {
                 Text("Alles funktioniert ohne Konto.", style = DropsType.bodyStrong, color = c.ink)
             }
             Text(
-                "Deine Daten liegen lokal auf dem Gerät. Ein Konto brauchst du nur für Backup und Sync zwischen Handy, Tablet und später dem iPhone.",
+                "Deine Daten liegen lokal auf dem Gerät. Ein Konto brauchst du nur, wenn du sie auf einem Server sichern und zwischen mehreren Geräten abgleichen willst.",
                 style = DropsType.body, color = c.muted, modifier = Modifier.padding(top = 8.dp),
             )
         }
@@ -102,22 +105,31 @@ fun AccountScreen(vm: DropsViewModel, nav: NavController) {
             var server by rememberSaveable { mutableStateOf(BuildConfig.DEFAULT_SYNC_URL) }
             var email by rememberSaveable { mutableStateOf("") }
             var password by rememberSaveable { mutableStateOf("") }
+            var tried by rememberSaveable { mutableStateOf(false) }
+            // Checked on tap, with the reason next to the field, instead of a greyed-out button that says nothing.
+            val errors = if (tried) AccountInput.errors(server, email, password) else emptyMap()
+            val serverError = errors[AccountInput.Field.SERVER]
+            val emailError = errors[AccountInput.Field.EMAIL]
+            val passwordError = errors[AccountInput.Field.PASSWORD]
 
             Segmented(listOf("Anmelden", "Registrieren"), mode, { mode = it }, Modifier.fillMaxWidth())
             Column(Modifier.clip(RoundedCornerShape(18.dp)).border(1.dp, c.line, RoundedCornerShape(18.dp)).background(c.line), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Field("Server", server, { server = it }, KeyboardType.Uri)
-                Field("E-Mail", email, { email = it }, KeyboardType.Email)
-                Field("Passwort", password, { password = it }, KeyboardType.Password, secret = true)
+                Field("Server", server, { server = it }, KeyboardType.Uri, error = serverError)
+                Field("E-Mail", email, { email = it }, KeyboardType.Email, error = emailError)
+                Field(if (mode == 1) "Passwort (mind. 8 Zeichen)" else "Passwort", password, { password = it }, KeyboardType.Password, secret = true, error = passwordError)
             }
             AnimatedVisibility(state.error != null, enter = Motion.expandIn(reduced), exit = Motion.collapseOut(reduced)) {
                 Text(state.error.orEmpty(), style = DropsType.small, color = c.bad)
             }
             PillButton(
                 when { state.busy -> "Bitte warten …"; mode == 0 -> "Anmelden"; else -> "Konto erstellen" },
-                { vm.login(server, email, password, register = mode == 1) },
+                {
+                    tried = true
+                    if (AccountInput.errors(server, email, password).isEmpty()) vm.login(server.trim(), email.trim(), password, register = mode == 1)
+                },
                 Modifier.fillMaxWidth(),
                 kind = ButtonKind.Ink,
-                enabled = !state.busy && email.isNotBlank() && password.length >= 8,
+                enabled = !state.busy,
             )
             Text("Nach dem Anmelden werden deine lokalen Daten hochgeladen und mit anderen Geräten abgeglichen.", style = DropsType.small, color = c.muted)
         }
@@ -125,10 +137,10 @@ fun AccountScreen(vm: DropsViewModel, nav: NavController) {
 }
 
 @Composable
-private fun Field(label: String, value: String, onChange: (String) -> Unit, type: KeyboardType, secret: Boolean = false) {
+private fun Field(label: String, value: String, onChange: (String) -> Unit, type: KeyboardType, secret: Boolean = false, error: String? = null) {
     val c = Drops.colors
-    Column(Modifier.fillMaxWidth().background(c.surface).padding(horizontal = 14.dp, vertical = 10.dp)) {
-        Text(label, style = DropsType.caption, color = c.muted)
+    Column(Modifier.fillMaxWidth().heightIn(min = Space.touch).background(c.surface).padding(horizontal = Space.l, vertical = Space.m)) {
+        Text(label, style = DropsType.caption, color = if (error != null) c.bad else c.muted)
         Box {
             BasicTextField(
                 value, onChange,
@@ -137,8 +149,9 @@ private fun Field(label: String, value: String, onChange: (String) -> Unit, type
                 cursorBrush = SolidColor(c.accent),
                 keyboardOptions = KeyboardOptions(keyboardType = type, autoCorrectEnabled = false),
                 visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
-                modifier = Modifier.fillMaxWidth().padding(top = 2.dp).a11y(label),
+                modifier = Modifier.fillMaxWidth().padding(top = Space.xxs).a11y(label),
             )
         }
+        if (error != null) Text(error, style = DropsType.caption, color = c.bad, modifier = Modifier.padding(top = Space.xs))
     }
 }
