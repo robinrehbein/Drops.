@@ -80,7 +80,7 @@ fun SectionHeader(title: String, action: String? = null, onAction: (() -> Unit)?
 @Composable
 fun TextAction(text: String, onClick: () -> Unit, color: Color = Drops.colors.accent) {
     Box(
-        Modifier.defaultMinSize(minHeight = 44.dp).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 4.dp),
+        Modifier.defaultMinSize(minWidth = Space.touch, minHeight = Space.touch).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick).padding(horizontal = Space.s),
         contentAlignment = Alignment.Center,
     ) { Text(text, style = DropsType.bodyStrong.copy(fontSize = 14.sp), color = color) }
 }
@@ -272,3 +272,34 @@ fun Divider() = Box(Modifier.fillMaxWidth().height(1.dp).background(Drops.colors
 fun RowScope.Spacer1() = Box(Modifier.weight(1f))
 
 fun Modifier.a11y(label: String) = semantics { contentDescription = label }
+
+/**
+ * Asks before something that cannot be taken back easily. [destructive] paints
+ * the confirm action in the warning colour.
+ */
+@Composable
+fun ConfirmDialog(
+    title: String,
+    text: String,
+    confirm: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    destructive: Boolean = true,
+    dismiss: String = "Abbrechen",
+    content: (@Composable ColumnScope.() -> Unit)? = null,
+) {
+    val c = Drops.colors
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = c.surface,
+        title = { Text(title, style = DropsType.headline, color = c.ink) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                Text(text, style = DropsType.body, color = c.muted)
+                content?.invoke(this)
+            }
+        },
+        confirmButton = { TextAction(confirm, { onConfirm(); onDismiss() }, if (destructive) c.bad else c.accent) },
+        dismissButton = { TextAction(dismiss, onDismiss, c.ink) },
+    )
+}

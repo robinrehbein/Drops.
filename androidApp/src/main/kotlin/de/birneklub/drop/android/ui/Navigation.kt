@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -90,7 +92,15 @@ fun DropsRoot(container: AppContainer, deepLink: MutableStateFlow<String?> = Mut
     val reduced = rememberReducedMotion()
     val message by vm.messages.collectAsStateWithLifecycle()
     LaunchedEffect(message) {
-        message?.let { snackbar.showSnackbar(it); vm.consumeMessage() }
+        // Consumed after showing: clearing it first would restart this effect and cancel the snackbar.
+        message?.let { m ->
+            val result = snackbar.showSnackbar(
+                m.text, actionLabel = m.action, withDismissAction = m.action != null,
+                duration = if (m.action != null) SnackbarDuration.Long else SnackbarDuration.Short,
+            )
+            vm.consumeMessage()
+            if (result == SnackbarResult.ActionPerformed) m.onAction?.invoke()
+        }
     }
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
