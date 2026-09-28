@@ -54,6 +54,9 @@ data class LibraryState(
     fun runningLow(): List<Pair<Bean, Int>> = de.birneklub.drop.core.reminders.Reminders.runningLow(beans, recipes)
 }
 
+/** A snackbar message; with [action] it offers e.g. "Rückgängig" and stays a little longer. */
+data class UiMessage(val text: String, val action: String? = null, val onAction: (() -> Unit)? = null)
+
 data class AccountState(
     val session: AccountSession? = null,
     val busy: Boolean = false,
@@ -72,8 +75,8 @@ class DropsViewModel(private val container: AppContainer) : ViewModel() {
     private val _account = MutableStateFlow(AccountState(session = sync.session.value))
     val account: StateFlow<AccountState> = _account.asStateFlow()
 
-    private val _messages = MutableStateFlow<String?>(null)
-    val messages: StateFlow<String?> = _messages.asStateFlow()
+    private val _messages = MutableStateFlow<UiMessage?>(null)
+    val messages: StateFlow<UiMessage?> = _messages.asStateFlow()
 
     /** null while loading; false shows onboarding on a fresh install. */
     private val stats = container.stats
@@ -101,7 +104,10 @@ class DropsViewModel(private val container: AppContainer) : ViewModel() {
     fun now() = repo.now()
     fun newId() = repo.newId()
     fun consumeMessage() { _messages.value = null }
-    private fun say(text: String) { _messages.value = text }
+    private fun say(text: String) { _messages.value = UiMessage(text) }
+    private fun sayWithUndo(text: String, undo: suspend () -> Unit) {
+        _messages.value = UiMessage(text, "Rückgängig") { write("Rückgängig gemacht") { undo() } }
+    }
     private fun count(event: String) { viewModelScope.launch { stats.count(event) } }
 
     val founding = container.founding
@@ -140,11 +146,34 @@ class DropsViewModel(private val container: AppContainer) : ViewModel() {
     fun saveBean(bean: Bean, message: String? = null) = write(message) { repo.saveBean(bean) }
     fun putInHopper(bean: Bean) = write("${bean.name} ist jetzt im Trichter") { repo.putInHopper(bean.id) }
     fun thawDose(bean: Bean) = write("1 Dose aufgetaut") { repo.thawDose(bean.id) }
+    /** Deletes the bean with its recipes and shots; the snackbar offers undo. */
+    fun deleteBean(bean: Bean) = viewModelScope.launch {
+        val deleted = repo.deleteBean(bean.id) ?: return@launch
+        val shots = deleted.shots.size
+        sayWithUndo("${bean.name} gelöscht" + if (shots > 0) " (mit $shots ${if (shots == 1) "Shot" else "Shots"})" else "") { repo.restore(deleted) }
+        scheduleSync()
+    }
+
+    fun setStatus(bean: Bean, status: de.birneklub.drop.core.model.BeanStatus, frozenDoses: Int = 0) = write(
+        when (status) {
+            de.birneklub.drop.core.model.BeanStatus.OPEN -> "${bean.name} ist offen"
+            de.birneklub.drop.core.model.BeanStatus.FROZEN -> "${bean.name}: $frozenDoses ${if (frozenDoses == 1) "Dose" else "Dosen"} eingefroren"
+            de.birneklub.drop.core.model.BeanStatus.ARCHIVED -> "${bean.name} archiviert"
+        },
+    ) { repo.setStatus(bean.id, status, frozenDoses) }
+
+    /** Clears stars and "Wieder kaufen?" together; undo brings both back. */
+    fun resetVerdict(bean: Bean) {
+        saveBean(bean.copy(rating = null, wouldRebuy = null))
+        sayWithUndo("Urteil zurückgesetzt") { repo.saveBean(bean) }
+    }
+
     fun rate(bean: Bean, stars: Int) {
         val value = if (bean.rating == stars.toDouble()) stars - 0.5 else stars.toDouble()
         saveBean(bean.copy(rating = value))
     }
-    fun setRebuy(bean: Bean, rebuy: Boolean) = saveBean(bean.copy(wouldRebuy = rebuy))
+    /** Tapping the chosen answer again clears it. */
+    fun setRebuy(bean: Bean, rebuy: Boolean) = saveBean(bean.copy(wouldRebuy = if (bean.wouldRebuy == rebuy) null else rebuy))
     fun saveRecipe(recipe: Recipe, message: String? = null) = write(message) { repo.saveRecipe(recipe) }
 
     // --- shots -----------------------------------------------------------------

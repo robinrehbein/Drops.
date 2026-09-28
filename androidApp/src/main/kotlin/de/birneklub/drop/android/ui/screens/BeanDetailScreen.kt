@@ -1,5 +1,9 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.runtime.mutableStateOf
+import de.birneklub.drop.android.ui.Space
+import de.birneklub.drop.android.ui.ConfirmDialog
 import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -57,6 +61,7 @@ import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.Segmented
 import de.birneklub.drop.android.ui.TextAction
 import de.birneklub.drop.android.ui.a11y
+import de.birneklub.drop.core.model.Bean
 import de.birneklub.drop.core.model.BeanStatus
 import de.birneklub.drop.core.model.Recipe
 import de.birneklub.drop.core.model.Shot
@@ -168,6 +173,9 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                         Text("Wieder kaufen?", style = DropsType.body, color = c.ink)
                         Segmented(listOf("Ja", "Nein"), when (bean.wouldRebuy) { true -> 0; false -> 1; null -> -1 }, { vm.setRebuy(bean, it == 0) }, Modifier.size(180.dp, 52.dp))
                     }
+                    if (bean.rating != null || bean.wouldRebuy != null) {
+                        TextAction("Urteil zurücksetzen", { vm.resetVerdict(bean) }, c.muted)
+                    }
                     bean.purchase?.let { p ->
                         Text("Gekauft bei ${p.shopName}${if (p.city.isNotBlank()) ", ${p.city}" else ""}", style = DropsType.small, color = c.muted)
                     }
@@ -182,6 +190,11 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                         )
                     }
                 }
+
+                BagSection(bean, onStatus = { status, doses -> vm.setStatus(bean, status, doses) }, onDelete = {
+                    vm.deleteBean(bean)
+                    nav.popBackStack()
+                }, shots = shots.size, recipes = recipes.size)
             }
         }
 
@@ -277,3 +290,66 @@ private fun DialInChart(shots: List<Shot>) {
         }
     }
 }
+
+/** Status of the bag (open, frozen with doses, archived) and deleting it. */
+@Composable
+private fun BagSection(bean: Bean, shots: Int, recipes: Int, onStatus: (BeanStatus, Int) -> Unit, onDelete: () -> Unit) {
+    val c = Drops.colors
+    var freezing by rememberSaveable { mutableStateOf(false) }
+    var deleting by rememberSaveable { mutableStateOf(false) }
+    val statuses = listOf(BeanStatus.OPEN, BeanStatus.FROZEN, BeanStatus.ARCHIVED)
+    Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+        de.birneklub.drop.android.ui.SectionHeader("Tüte")
+        Segmented(listOf("Offen", "Eingefroren", "Archiv"), statuses.indexOf(bean.status), { i ->
+            when (val s = statuses[i]) {
+                bean.status -> Unit
+                BeanStatus.FROZEN -> freezing = true
+                else -> onStatus(s, 0)
+            }
+        }, Modifier.fillMaxWidth())
+        Text(
+            when (bean.status) {
+                BeanStatus.OPEN -> "In Benutzung. Einfrieren, wenn du einen Teil für später portionierst."
+                BeanStatus.FROZEN -> "${bean.frozenDoses} ${if (bean.frozenDoses == 1) "Dose" else "Dosen"} im Gefrierfach. „Dose auftauen“ nimmt eine heraus."
+                BeanStatus.ARCHIVED -> "Aufgebraucht. Bewertung, Rezepte und Shots bleiben erhalten."
+            },
+            style = DropsType.small, color = c.muted,
+        )
+        PillButton("Bohne löschen", { deleting = true }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost, height = Space.touch)
+    }
+    if (freezing) {
+        val suggested = (bean.remainingGrams / DOSE_GRAMS).toInt().coerceAtLeast(1)
+        var doses by rememberSaveable { mutableIntStateOf(suggested) }
+        ConfirmDialog(
+            title = "Einfrieren",
+            text = "Wie viele Dosen kommen ins Gefrierfach?",
+            confirm = "Einfrieren",
+            destructive = false,
+            onConfirm = { onStatus(BeanStatus.FROZEN, doses) },
+            onDismiss = { freezing = false },
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
+                PillButton("−", { doses = (doses - 1).coerceAtLeast(1) }, kind = ButtonKind.Ghost, height = Space.touch, modifier = Modifier.a11y("Eine Dose weniger"))
+                Text("$doses ${if (doses == 1) "Dose" else "Dosen"}", style = DropsType.numberLarge, color = c.ink, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                PillButton("+", { doses = (doses + 1).coerceAtMost(99) }, kind = ButtonKind.Ghost, height = Space.touch, modifier = Modifier.a11y("Eine Dose mehr"))
+            }
+        }
+    }
+    if (deleting) {
+        val parts = listOfNotNull(
+            recipes.takeIf { it > 0 }?.let { "$it ${if (it == 1) "Rezept" else "Rezepte"}" },
+            shots.takeIf { it > 0 }?.let { "$it ${if (it == 1) "Shot" else "Shots"}" },
+        )
+        ConfirmDialog(
+            title = "${bean.name} löschen?",
+            text = if (parts.isEmpty()) "Die Bohne wird gelöscht. Du kannst das gleich danach rückgängig machen."
+            else "Mit der Bohne werden ${parts.joinToString(" und ")} gelöscht. Du kannst das gleich danach rückgängig machen.",
+            confirm = "Löschen",
+            onConfirm = onDelete,
+            onDismiss = { deleting = false },
+        )
+    }
+}
+
+/** Grams per portion when suggesting how many doses to freeze. */
+private const val DOSE_GRAMS = 18.0

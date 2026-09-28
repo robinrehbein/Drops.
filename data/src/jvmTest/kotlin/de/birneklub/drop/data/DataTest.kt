@@ -241,4 +241,46 @@ class DataTest {
         assertTrue(stats.pending().isEmpty())
         assertEquals(false, stats.flush("https://drops.example.com"))
     }
+
+    @Test
+    fun deletingABeanTakesRecipesAndShotsAndLeavesTombstones() = runTest {
+        val db = createDatabase()
+        val repo = repo(db)
+        repo.seedIfEmpty()
+        val counters = repo.equipment.first().associate { it.kind to (it.shotCount to it.groundKg) }
+        val deleted = assertNotNull(repo.deleteBean("sample-guji"))
+        assertEquals(2, deleted.recipes.size)
+        assertEquals(9, deleted.shots.size)
+        assertNull(repo.beans.first().firstOrNull { it.id == "sample-guji" })
+        assertTrue(repo.recipes.first().none { it.beanId == "sample-guji" })
+        assertTrue(repo.shots.first().none { it.beanId == "sample-guji" })
+        val row = db.recordsQueries.byId("beans", "sample-guji").executeAsOne()
+        assertEquals(1L, row.deleted, "tombstone for sync")
+        assertEquals(1L, row.dirty)
+        assertEquals(1L, db.recordsQueries.byId("shots", "sample-s0").executeAsOne().deleted)
+        assertEquals(counters, repo.equipment.first().associate { it.kind to (it.shotCount to it.groundKg) }, "counters stay")
+
+        repo.restore(deleted)
+        assertNotNull(repo.beans.first().firstOrNull { it.id == "sample-guji" })
+        assertEquals(2, repo.recipes.first().count { it.beanId == "sample-guji" })
+        assertEquals(9, repo.shots.first().count { it.beanId == "sample-guji" })
+        assertEquals(0L, db.recordsQueries.byId("beans", "sample-guji").executeAsOne().deleted)
+        assertNull(repo.deleteBean("does-not-exist"))
+    }
+
+    @Test
+    fun statusChangesMoveTheBagInAndOutOfTheFreezer() = runTest {
+        val repo = repo()
+        repo.seedIfEmpty()
+        repo.setStatus("sample-guji", de.birneklub.drop.core.model.BeanStatus.FROZEN, 5)
+        var bean = repo.beans.first().single { it.id == "sample-guji" }
+        assertEquals(de.birneklub.drop.core.model.BeanStatus.FROZEN, bean.status)
+        assertEquals(5, bean.frozenDoses)
+        assertTrue(!bean.inHopper, "a frozen bag leaves the hopper")
+        repo.setStatus("sample-guji", de.birneklub.drop.core.model.BeanStatus.ARCHIVED)
+        bean = repo.beans.first().single { it.id == "sample-guji" }
+        assertEquals(0, bean.frozenDoses)
+        repo.setStatus("sample-guji", de.birneklub.drop.core.model.BeanStatus.OPEN)
+        assertEquals(de.birneklub.drop.core.model.BeanStatus.OPEN, repo.beans.first().single { it.id == "sample-guji" }.status)
+    }
 }

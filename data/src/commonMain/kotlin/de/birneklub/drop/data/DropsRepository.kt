@@ -34,6 +34,9 @@ import kotlin.uuid.Uuid
  * Local-first store for everything the user tracks. All writes mark records
  * dirty so [SyncClient] can push them once the user opts into an account.
  */
+/** A deleted bean with everything that went with it, kept in memory for undo. */
+data class DeletedBean(val bean: Bean, val recipes: List<Recipe>, val shots: List<Shot>)
+
 class DropsRepository(
     internal val db: DropsDatabase,
     private val clock: Clock = Clock.System,
@@ -76,11 +79,46 @@ class DropsRepository(
 
     suspend fun saveBean(bean: Bean) = withContext(io) { write(SyncCollections.BEANS, Bean.serializer(), bean.copy(updatedAt = now())) }
 
-    suspend fun deleteBean(id: String) = withContext(io) {
-        db.transaction {
+    /**
+     * Deletes the bean with its recipes and shots. Every record leaves a sync
+     * tombstone, so other devices delete it too. Returns what was deleted so the
+     * user can undo; the machine and grinder counters are not touched, because
+     * those shots were really pulled.
+     */
+    suspend fun deleteBean(id: String): DeletedBean? = withContext(io) {
+        db.transactionWithResult {
+            val bean = read(SyncCollections.BEANS, id, Bean.serializer()) ?: return@transactionWithResult null
+            val recipes = allLive(SyncCollections.RECIPES, Recipe.serializer()).filter { it.beanId == id }
+            val shots = allLive(SyncCollections.SHOTS, Shot.serializer()).filter { it.beanId == id }
             tombstone(SyncCollections.BEANS, id)
-            allLive(SyncCollections.RECIPES, Recipe.serializer()).filter { it.beanId == id }.forEach { tombstone(SyncCollections.RECIPES, it.id) }
+            recipes.forEach { tombstone(SyncCollections.RECIPES, it.id) }
+            shots.forEach { tombstone(SyncCollections.SHOTS, it.id) }
+            DeletedBean(bean, recipes, shots)
         }
+    }
+
+    /** Undo for [deleteBean]: the records come back newer than their tombstones, so sync restores them everywhere. */
+    suspend fun restore(deleted: DeletedBean) = withContext(io) {
+        db.transaction {
+            val t = now()
+            write(SyncCollections.BEANS, Bean.serializer(), deleted.bean.copy(updatedAt = t))
+            deleted.recipes.forEach { write(SyncCollections.RECIPES, Recipe.serializer(), it.copy(updatedAt = t)) }
+            deleted.shots.forEach { write(SyncCollections.SHOTS, Shot.serializer(), it.copy(updatedAt = t)) }
+        }
+    }
+
+    /**
+     * Opens, freezes or archives a bag. Freezing stores how many doses went into
+     * the freezer; a frozen or archived bag leaves the hopper.
+     */
+    suspend fun setStatus(beanId: String, status: BeanStatus, frozenDoses: Int = 0) = withContext(io) {
+        val b = read(SyncCollections.BEANS, beanId, Bean.serializer()) ?: return@withContext
+        val updated = when (status) {
+            BeanStatus.OPEN -> b.copy(status = status, frozenDoses = 0)
+            BeanStatus.FROZEN -> b.copy(status = status, frozenDoses = frozenDoses.coerceAtLeast(1), inHopper = false)
+            BeanStatus.ARCHIVED -> b.copy(status = status, frozenDoses = 0, inHopper = false)
+        }
+        write(SyncCollections.BEANS, Bean.serializer(), updated.copy(updatedAt = now()))
     }
 
     /** Puts one open bag into the hopper; all others leave it. */
