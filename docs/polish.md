@@ -30,12 +30,12 @@ Kriterien:
 
 Datei: `OnboardingScreen.kt` · Screenshot: `01_onboarding`
 
-- [ ] Zahlen
-- [ ] Sprache
-- [ ] Layout
-- [ ] Design
-- [ ] Barrierefreiheit
-- [ ] Zustände
+- [x] Zahlen
+- [x] Sprache
+- [x] Layout
+- [x] Design
+- [x] Barrierefreiheit
+- [x] Zustände
 
 ### Setup (inkl. Geräte)
 

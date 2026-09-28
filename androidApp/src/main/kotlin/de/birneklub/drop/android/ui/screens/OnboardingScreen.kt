@@ -1,5 +1,7 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.foundation.layout.FlowRow
+import de.birneklub.drop.android.ui.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -50,6 +52,7 @@ import de.birneklub.drop.core.catalog.MachineModel
 import de.birneklub.drop.core.model.EquipmentKind
 
 /** First start: machine, grinder, first bean. Each step can be skipped. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
     var step by rememberSaveable { mutableIntStateOf(0) }
@@ -68,7 +71,7 @@ fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
     }
 
     ScreenColumn {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().heightIn(min = Space.touch), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Eyebrow("Schritt ${step + 1} von 3")
             if (step > 0) TextAction("‹ Zurück", { step-- })
         }
@@ -83,19 +86,24 @@ fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
             0 -> {
                 ScreenTitle("Deine Maschine")
                 Text("Damit stimmen Pflegeplan und Erinnerungen von Anfang an.", style = DropsType.body, color = c.muted)
+                // Ways past this step sit above the long catalog, not below it.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                    TextAction("Erst mit Beispieldaten umsehen", {
+                        vm.exploreWithSamples()
+                        nav.navigate(Routes.TODAY) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
+                    })
+                    TextAction("Überspringen", { step = 1 }, c.muted)
+                }
                 EquipmentPicker(EquipmentKind.MACHINE, suggestedFor = null) { machine, _, custom ->
                     vm.chooseMachine(machine, custom)
                     machineId = machine?.id
                     step = 1
                 }
-                TextAction("Erst mal mit Beispieldaten umsehen", {
-                    vm.exploreWithSamples()
-                    nav.navigate(Routes.TODAY) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
-                }, c.muted)
             }
             1 -> {
                 ScreenTitle("Deine Mühle")
                 Text("Die Skala deiner Mühle bestimmt, in welchen Schritten Drops. den Mahlgrad vorschlägt.", style = DropsType.body, color = c.muted)
+                TextAction("Überspringen", { step = 2 }, c.muted)
                 EquipmentPicker(EquipmentKind.GRINDER, suggestedFor = machineId) { _, grinder, custom ->
                     vm.chooseGrinder(grinder, custom)
                     step = 2
@@ -106,7 +114,7 @@ fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
                 DropsCard(Modifier.fillMaxWidth()) {
                     Text("Was ist gerade im Trichter?", style = DropsType.bodyStrong, color = c.ink)
                     Text(
-                        "Mit Röstdatum und Menge erinnert dich Drops., bevor die Tüte leer ist, und merkt sich das Rezept für den Nachkauf.",
+                        "Mit Röstdatum und Menge zeigt Drops. die beste Zeit für die Bohne und erinnert dich, bevor die Tüte leer ist.",
                         style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = 6.dp),
                     )
                 }
@@ -115,8 +123,8 @@ fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
                 val bcImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                     if (uri != null) { vm.importBeanconqueror(uri); leave(null) }
                 }
-                TextAction("Von Beanconqueror umziehen", { bcImporter.launch(arrayOf("application/zip", "application/json", "application/octet-stream")) })
-                TextAction("Später", { leave(null) }, c.muted)
+                TextAction("Von Beanconqueror übernehmen", { bcImporter.launch(arrayOf("application/zip", "application/json", "application/octet-stream")) })
+                TextAction("Später anlegen", { leave(null) }, c.muted)
             }
         }
         }
@@ -159,14 +167,14 @@ private fun EquipmentPicker(kind: EquipmentKind, suggestedFor: String?, onPick: 
     val machine = kind == EquipmentKind.MACHINE
 
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().heightIn(min = Space.touch).clip(RoundedCornerShape(14.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(14.dp))
+            .padding(horizontal = Space.l, vertical = Space.m),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(DropsIcons.Search, null, tint = c.muted, size = 18.dp)
         Box(Modifier.weight(1f)) {
-            if (query.isEmpty()) Text(if (machine) "Marke oder Modell, z. B. Silvia" else "Marke oder Modell, z. B. Niche", style = DropsType.body, color = c.muted)
+            if (query.isEmpty()) Text(if (machine) "Suchen, z. B. Silvia" else "Suchen, z. B. Niche", style = DropsType.body, color = c.muted, maxLines = 1)
             BasicTextField(
                 query, { query = it }, singleLine = true, textStyle = DropsType.body.copy(color = c.ink), cursorBrush = SolidColor(c.accent),
                 modifier = Modifier.fillMaxWidth().a11y("Suche"),
@@ -174,6 +182,7 @@ private fun EquipmentPicker(kind: EquipmentKind, suggestedFor: String?, onPick: 
         }
     }
 
+    if (query.isBlank()) Text("Nicht dabei? Tipp den Namen ein, dann legt Drops. einen allgemeinen Plan an.", style = DropsType.small, color = c.muted)
     Column(Modifier.clip(RoundedCornerShape(18.dp)).border(1.dp, c.line, RoundedCornerShape(18.dp)).background(c.line), verticalArrangement = Arrangement.spacedBy(1.dp)) {
         if (machine) {
             EquipmentCatalog.search(EquipmentCatalog.machines, query) { it.displayName }.forEach { m ->
@@ -208,7 +217,7 @@ private fun PickerRow(title: String, subtitle: String, onClick: () -> Unit) {
             Text(title, style = DropsType.bodyStrong, color = c.ink)
             if (subtitle.isNotBlank()) Text(subtitle, style = DropsType.small, color = c.muted)
         }
-        Text("›", style = DropsType.headline, color = c.muted)
+        Icon(DropsIcons.Chevron, null, tint = c.muted, size = 20.dp)
     }
 }
 
