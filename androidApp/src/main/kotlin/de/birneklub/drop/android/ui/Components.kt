@@ -62,6 +62,10 @@ fun TaskStatus.label(): String {
 
 // --- building blocks ---------------------------------------------------------------
 
+/** From about 130 % font size rows of side-by-side items switch to stacked layouts. */
+@Composable
+fun rememberLargeFont(): Boolean = androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f
+
 @Composable
 fun Eyebrow(text: String, color: Color = Drops.colors.muted) =
     Text(text.uppercase(), style = DropsType.eyebrow, color = color)
@@ -209,7 +213,7 @@ fun IconBox(icon: ImageVector, tint: Color, background: Color, size: Dp = 40.dp)
 fun Stat(label: String, value: String, labelColor: Color, valueColor: Color, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = DropsType.caption.copy(fontSize = 11.sp), color = labelColor)
-        Text(value, style = DropsType.number, color = valueColor, maxLines = 1)
+        Text(value, style = DropsType.number, color = valueColor)
     }
 }
 
@@ -223,17 +227,21 @@ fun stateColors(state: TaskState, c: DropsColors): Pair<Color, Color> = when (st
 fun TaskRow(status: TaskStatus, compact: Boolean, onBuy: ((String) -> Unit)? = null, buySponsored: Boolean = false, onDone: () -> Unit) {
     val c = Drops.colors
     val (fg, soft) = stateColors(status.state, c)
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconBox(if (status.task.intervalUnit == IntervalUnit.KILOGRAMS) DropsIcons.Brush else DropsIcons.Drop, fg, soft)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    val large = rememberLargeFont()
+    val done = @Composable { PillButton("Erledigt", onDone, kind = if (status.state == TaskState.OK) ButtonKind.Ghost else ButtonKind.Ink, height = Space.touch) }
+    Column(Modifier.padding(horizontal = Space.l, vertical = Space.m), verticalArrangement = Arrangement.spacedBy(Space.m)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+            if (!large) IconBox(if (status.task.intervalUnit == IntervalUnit.KILOGRAMS) DropsIcons.Brush else DropsIcons.Drop, fg, soft)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Space.xxs)) {
                 Text(status.task.name, style = DropsType.bodyStrong, color = c.ink)
                 Text(if (compact) status.label() else status.task.description.ifBlank { intervalText(status) }, style = DropsType.caption, color = if (compact) fg else c.muted)
             }
-            PillButton("Erledigt", onDone, kind = if (status.state == TaskState.OK) ButtonKind.Ghost else ButtonKind.Ink, height = 40.dp)
+            // With large text the name needs the full width; the button moves below.
+            if (!large) done()
         }
+        if (large) done()
         if (!compact) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
                 ProgressBar(status.progress.toFloat(), fg, Modifier.weight(1f))
                 Text(status.label(), style = DropsType.caption.copy(fontFamily = MonoFamily), color = fg)
             }

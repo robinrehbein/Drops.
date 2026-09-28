@@ -1,5 +1,14 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.clickable
+import de.birneklub.drop.android.ui.a11y
+import de.birneklub.drop.android.ui.rememberLargeFont
+import de.birneklub.drop.android.ui.Space
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -61,12 +70,12 @@ import kotlin.time.Duration.Companion.days
 @Composable
 fun ScreenColumn(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 32.dp),
+    contentPadding: PaddingValues = PaddingValues(start = Space.xl, end = Space.xl, top = Space.xxl, bottom = Space.xxxl),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
         modifier.fillMaxSize().background(Drops.colors.paper).statusBarsPadding().verticalScroll(rememberScrollState()).padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(Space.xl),
         content = content,
     )
 }
@@ -83,17 +92,18 @@ fun ScreenTitle(title: String, trailing: String? = null, trailingColor: Color = 
 val TasteLabels = listOf("Sauer", "Leicht sauer", "Ausgewogen", "Leicht bitter", "Bitter")
 
 @Composable
-fun tasteColor(index: Int): Color = with(Drops.colors) { listOf(accent, heroAccent, ok, muted, ink)[index] }
+/** Marker colours for the taste scale; each reaches 3:1 against cards in light and dark mode. */
+fun tasteColor(index: Int): Color = with(Drops.colors) { listOf(bad, accent, ok, ice, ink)[index] }
 
 @Composable
 fun TodayScreen(vm: DropsViewModel, nav: NavController) {
     val lib by vm.library.collectAsStateWithLifecycle()
     val now = vm.now()
     val zone = TimeZone.currentSystemDefault()
-    val date = DateTimeFormatter.ofPattern("EEEE · d. MMMM", Locale.GERMANY).format(now.toJavaInstant().atZone(java.time.ZoneId.systemDefault()))
+    val date = DateTimeFormatter.ofPattern("EEEE · d.\u00A0MMMM", Locale.GERMANY).format(now.toJavaInstant().atZone(java.time.ZoneId.systemDefault()))
 
     ScreenColumn {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
             Eyebrow(date)
             Text(greeting(now.toLocalDateTime(zone).hour), style = DropsType.display, color = Drops.colors.ink)
         }
@@ -114,32 +124,38 @@ fun TodayScreen(vm: DropsViewModel, nav: NavController) {
         val uri = LocalUriHandler.current
         val low = lib.runningLow().take(2)
         if (low.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
                 SectionHeader("Geht zur Neige")
                 DropsCard(padding = PaddingValues(0.dp)) {
                     low.forEachIndexed { i, (b, left) ->
                         if (i > 0) de.birneklub.drop.android.ui.Divider()
-                        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Column(Modifier.weight(1f)) {
+                        val link = vm.reorderLink(b)
+                        AdaptiveRow(
+                            Modifier.padding(horizontal = Space.l, vertical = Space.m),
+                            main = {
                                 Text(b.name, style = DropsType.bodyStrong, color = Drops.colors.ink)
-                                Text(if (left == 0) "leer" else "noch $left Shots · ${b.roaster}", style = DropsType.caption, color = Drops.colors.warn)
-                            }
-                            val link = vm.reorderLink(b)
-                            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                PillButton("Nachkaufen", { uri.openUri(vm.open(link, reorder = true)) }, kind = ButtonKind.Ink, height = 40.dp)
+                                Text(
+                                    Format.join(if (left == 0) "leer" else "noch $left ${if (left == 1) "Shot" else "Shots"}", b.roaster),
+                                    style = DropsType.caption, color = Drops.colors.warn,
+                                )
+                            },
+                            side = {
+                                PillButton("Nachkaufen", { uri.openUri(vm.open(link, reorder = true)) }, kind = ButtonKind.Ink, height = Space.touch)
                                 if (link.sponsored) de.birneklub.drop.android.ui.AdLabel()
-                            }
-                        }
+                            },
+                        )
                     }
                 }
             }
         }
 
         val due = lib.carePlan(now).filter { it.progress >= 0.8 }.take(3)
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
             SectionHeader("Fällig", "Alle Pflege", { nav.navigate(Routes.SETUP) })
             if (due.isEmpty()) {
-                DropsCard { Text("Alles gepflegt.", style = DropsType.body, color = Drops.colors.ok) }
+                DropsCard(Modifier.fillMaxWidth()) {
+                    Text(if (lib.tasks.isEmpty()) "Noch kein Pflegeplan." else "Alles gepflegt.", style = DropsType.body, color = if (lib.tasks.isEmpty()) Drops.colors.muted else Drops.colors.ok)
+                }
             } else {
                 DropsCard(padding = PaddingValues(0.dp)) {
                     due.forEachIndexed { i, s ->
@@ -152,15 +168,23 @@ fun TodayScreen(vm: DropsViewModel, nav: NavController) {
 
         val recent = lib.shots.sortedByDescending { it.pulledAt }.take(3)
         if (recent.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
                 val week = lib.shots.count { now - it.pulledAt < 7.days }
-                SectionHeader("Letzte Shots", trailing = "Diese Woche $week")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    recent.forEach { s ->
-                        DropsCard(Modifier.weight(1f), onClick = { nav.navigate(Routes.bean(s.beanId)) }, padding = PaddingValues(12.dp)) {
-                            Text(relativeDay(s.pulledAt, now), style = DropsType.caption, color = Drops.colors.muted)
-                            Text("${Format.doseToYield(s.doseGrams, s.yieldGrams)} · ${Format.seconds(s.timeSec)}", style = DropsType.small.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = Drops.colors.ink, modifier = Modifier.padding(vertical = 6.dp))
-                            Text(TasteLabels[s.taste.ordinal], style = DropsType.caption, color = tasteColor(s.taste.ordinal))
+                SectionHeader("Letzte Shots", trailing = "$week diese Woche")
+                DropsCard(Modifier.fillMaxWidth(), padding = PaddingValues(0.dp)) {
+                    recent.forEachIndexed { i, s ->
+                        if (i > 0) de.birneklub.drop.android.ui.Divider()
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = Space.touch).clickable(role = Role.Button, onClickLabel = "Bohne öffnen") { nav.navigate(Routes.bean(s.beanId)) }
+                                .padding(horizontal = Space.l, vertical = Space.m),
+                            horizontalArrangement = Arrangement.spacedBy(Space.m),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(tasteColor(s.taste.ordinal)))
+                            Column(Modifier.weight(1f)) {
+                                Text("${Format.doseToYield(s.doseGrams, s.yieldGrams)} · ${Format.seconds(s.timeSec)}", style = DropsType.bodyStrong.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = Drops.colors.ink)
+                                Text(Format.join(relativeDay(s.pulledAt, now), lib.bean(s.beanId)?.name, TasteLabels[s.taste.ordinal]), style = DropsType.small, color = Drops.colors.muted)
+                            }
                         }
                     }
                 }
@@ -182,36 +206,43 @@ fun relativeDay(at: kotlinx.datetime.Instant, now: kotlinx.datetime.Instant): St
     return when {
         days == 0 -> "Heute %02d:%02d".format(d.hour, d.minute)
         days == 1 -> "Gestern"
-        days < 7 -> listOf("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")[d.dayOfWeek.ordinal]
-        else -> "${d.dayOfMonth}.${d.monthNumber}."
+        days < 7 -> listOf("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag")[d.dayOfWeek.ordinal]
+        else -> Format.date(d.date)
     }
 }
 
 private fun kotlinx.datetime.LocalDate.daysUntilSafe(other: kotlinx.datetime.LocalDate): Int =
     (other.toEpochDays() - toEpochDays())
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HopperCard(bean: Bean, recipe: Recipe?, today: kotlinx.datetime.LocalDate, onShot: () -> Unit, onRecipe: () -> Unit) {
     val c = Drops.colors
+    val large = rememberLargeFont()
     HeroCard {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        val shots = de.birneklub.drop.core.reminders.Reminders.shotsLeft(bean, recipe?.doseGrams ?: 18.0)
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(Space.xs)) {
             Eyebrow("Im Trichter", c.heroAccent)
-            val shots = floor(bean.remainingGrams / (recipe?.doseGrams ?: 18.0)).toInt()
-            Text("${Format.number(bean.remainingGrams, 0)} / ${Format.grams(bean.weightGrams.toDouble(), 0)} · ≈ $shots Shots", style = DropsType.caption.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = c.heroMuted)
+            Text(
+                "${Format.number(bean.remainingGrams, 0)} / ${Format.grams(bean.weightGrams.toDouble(), 0)} · ≈\u00A0$shots\u00A0${if (shots == 1) "Shot" else "Shots"}",
+                style = DropsType.caption.copy(fontFamily = de.birneklub.drop.android.ui.MonoFamily), color = c.heroMuted,
+            )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Space.xxs)) {
             Text(bean.name, style = DropsType.title.copy(fontSize = 34.sp), color = c.heroInk)
-            Text(listOf(bean.roaster, bean.country, processLabel(bean.process)).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.small.copy(fontSize = 14.sp), color = c.heroMuted)
+            Format.joinOrNull(bean.roaster, bean.country, bean.process.takeIf { it != de.birneklub.drop.core.model.Process.OTHER }?.let(::processLabel))?.let {
+                Text(it, style = DropsType.small.copy(fontSize = 14.sp), color = c.heroMuted)
+            }
         }
         bean.roastDate?.let { roast ->
             val f = RoastFreshness.evaluate(roast, today)
             val (label, color) = when (f.phase) {
                 FreshnessPhase.RESTING -> "Noch ruhen lassen" to c.heroMuted
-                FreshnessPhase.PEAK -> "Im Sweetspot" to c.heroInk
+                FreshnessPhase.PEAK -> "Beste Zeit" to c.heroInk
                 FreshnessPhase.FADING -> "Bald aufbrauchen" to c.heroAccent
             }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Tag ${f.daysSinceRoast} nach Röstung", style = DropsType.caption, color = c.heroMuted)
                     Text(label, style = DropsType.caption, color = color)
                 }
@@ -219,16 +250,29 @@ private fun HopperCard(bean: Bean, recipe: Recipe?, today: kotlinx.datetime.Loca
             }
         }
         if (recipe != null) {
-            Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat("Mahlgrad", Format.grind(recipe.grindSetting), c.heroMuted, c.heroInk, Modifier.weight(1f))
-                Stat("Ratio", Format.ratio(recipe.doseGrams, recipe.yieldGrams), c.heroMuted, c.heroInk, Modifier.weight(1f))
-                Stat("Zeit", Format.secondsRange(recipe.targetTimeMinSec, recipe.targetTimeMaxSec), c.heroMuted, c.heroInk, Modifier.weight(1.1f))
-                Stat("Temp.", Format.celsius(recipe.temperatureC), c.heroMuted, c.heroInk, Modifier.weight(0.8f))
+            val stats = listOf(
+                "Mahlgrad" to (if (recipe.grindSetting > 0) Format.grind(recipe.grindSetting) else Format.MISSING),
+                "Verhältnis" to Format.ratio(recipe.doseGrams, recipe.yieldGrams),
+                "Zeit" to Format.secondsRange(recipe.targetTimeMinSec, recipe.targetTimeMaxSec),
+                "Temperatur" to Format.celsius(recipe.temperatureC),
+            )
+            // Two by two: four columns do not fit long values or large text on a narrow phone.
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                stats.chunked(if (large) 1 else 2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                        row.forEach { (k, v) -> Stat(k, v, c.heroMuted, c.heroInk, Modifier.weight(1f)) }
+                    }
+                }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PillButton("Shot starten", onShot, Modifier.weight(1f), kind = ButtonKind.Hero, icon = DropsIcons.Timer)
-            PillButton("Rezept", onRecipe, kind = ButtonKind.GhostOnHero)
+        if (large) {
+            PillButton("Shot starten", onShot, Modifier.fillMaxWidth(), kind = ButtonKind.Hero, icon = DropsIcons.Timer)
+            PillButton("Rezept", onRecipe, Modifier.fillMaxWidth(), kind = ButtonKind.GhostOnHero)
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                PillButton("Shot starten", onShot, Modifier.weight(1f), kind = ButtonKind.Hero, icon = DropsIcons.Timer)
+                PillButton("Rezept", onRecipe, kind = ButtonKind.GhostOnHero)
+            }
         }
     }
 }
@@ -237,7 +281,7 @@ private fun HopperCard(bean: Bean, recipe: Recipe?, today: kotlinx.datetime.Loca
 private fun FreshnessBar(days: Int) {
     val c = Drops.colors
     val max = 45f
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.a11y("Frische: Tag $days nach Röstung, beste Zeit von Tag 7 bis 28"), verticalArrangement = Arrangement.spacedBy(Space.s)) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
             val w = maxWidth
             Box(Modifier.align(Alignment.CenterStart).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(c.heroLine))
@@ -256,4 +300,23 @@ fun processLabel(p: de.birneklub.drop.core.model.Process) = when (p) {
     de.birneklub.drop.core.model.Process.HONEY -> "Honey"
     de.birneklub.drop.core.model.Process.ANAEROBIC -> "Anaerob"
     de.birneklub.drop.core.model.Process.OTHER -> "Andere"
+}
+
+/**
+ * Text on the left, actions on the right; with large text the actions move
+ * below so the text keeps the full width.
+ */
+@Composable
+fun AdaptiveRow(modifier: Modifier = Modifier, main: @Composable ColumnScope.() -> Unit, side: @Composable ColumnScope.() -> Unit) {
+    if (rememberLargeFont()) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.s)) {
+            Column(content = main)
+            side()
+        }
+    } else {
+        Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+            Column(Modifier.weight(1f), content = main)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Space.xs), content = side)
+        }
+    }
 }
