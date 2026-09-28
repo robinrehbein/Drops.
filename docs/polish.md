@@ -41,12 +41,12 @@ Datei: `OnboardingScreen.kt` · Screenshot: `01_onboarding`
 
 Datei: `SetupScreen.kt, OnboardingScreen.kt (EquipmentScreen)` · Screenshot: `02_setup, 02b_equipment`
 
-- [ ] Zahlen
-- [ ] Sprache
-- [ ] Layout
-- [ ] Design
-- [ ] Barrierefreiheit
-- [ ] Zustände
+- [x] Zahlen
+- [x] Sprache
+- [x] Layout
+- [x] Design
+- [x] Barrierefreiheit
+- [x] Zustände
 
 ### Heute
 

@@ -48,6 +48,7 @@ object DropsIcons {
     val Cloud = line("cloud", "M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z", 2f)
     val Refresh = line("refresh", "M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4", 2f)
     val Edit = line("edit", "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4", 2f)
+    val Chevron = line("chevron", "M9 6l6 6-6 6", 2f)
     val Fit = line("fit", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5", 2f)
 }
 

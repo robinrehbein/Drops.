@@ -1,5 +1,12 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import de.birneklub.drop.android.ui.rememberLargeFont
+import de.birneklub.drop.android.ui.Space
 import de.birneklub.drop.android.ui.ConfirmDialog
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -58,50 +65,53 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
     ScreenColumn {
         ScreenTitle("Setup", if (overdue > 0) "$overdue überfällig" else "Alles im grünen Bereich", if (overdue > 0) c.bad else c.ok)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            machine?.let {
-                HeroCard(Modifier.weight(1f).clickable(role = Role.Button) { nav.navigate(Routes.equipment(EquipmentKind.MACHINE)) }) {
-                    Icon(DropsIcons.Machine, null, tint = c.heroAccent, size = 28.dp)
+        // Machine and grinder side by side, stacked with large text; each card opens its details.
+        val large = rememberLargeFont()
+        val cards = listOfNotNull(
+            machine?.let { m -> Triple(m, DropsIcons.Machine, Format.integer(m.shotCount) to "Shots gesamt") },
+            grinder?.let { g -> Triple(g, DropsIcons.Grinder, Format.kilograms(g.groundKg) to "gemahlen") },
+        )
+        if (cards.isNotEmpty()) {
+            val card: @Composable (Modifier, Triple<de.birneklub.drop.core.model.Equipment, androidx.compose.ui.graphics.vector.ImageVector, Pair<String, String>>) -> Unit = { mod, (e, icon, count) ->
+                HeroCard(mod.clip(RoundedCornerShape(24.dp)).clickable(role = Role.Button, onClickLabel = "Details öffnen") { nav.navigate(Routes.equipment(e.kind)) }) {
+                    Icon(icon, null, tint = c.heroAccent, size = 28.dp)
                     Column {
-                        Text(it.name, style = DropsType.bodyStrong, color = c.heroInk)
-                        Text(it.details, style = DropsType.caption, color = c.heroMuted)
+                        Text(e.name, style = DropsType.bodyStrong, color = c.heroInk)
+                        if (e.details.isNotBlank()) Text(e.details, style = DropsType.caption, color = c.heroMuted)
                     }
                     Column {
-                        Text(Format.integer(it.shotCount), style = DropsType.number.copy(fontSize = 20.sp), color = c.heroInk)
-                        Text("Shots gesamt", style = DropsType.caption.copy(fontSize = 11.sp), color = c.heroMuted)
+                        Text(count.first, style = DropsType.number.copy(fontSize = 20.sp), color = c.heroInk)
+                        Text(count.second, style = DropsType.caption, color = c.heroMuted)
                     }
                 }
             }
-            grinder?.let {
-                HeroCard(Modifier.weight(1f).clickable(role = Role.Button) { nav.navigate(Routes.equipment(EquipmentKind.GRINDER)) }) {
-                    Icon(DropsIcons.Grinder, null, tint = c.heroAccent, size = 28.dp)
-                    Column {
-                        Text(it.name, style = DropsType.bodyStrong, color = c.heroInk)
-                        Text(it.details, style = DropsType.caption, color = c.heroMuted)
-                    }
-                    Column {
-                        Text(Format.kilograms(it.groundKg), style = DropsType.number.copy(fontSize = 20.sp), color = c.heroInk)
-                        Text("gemahlen", style = DropsType.caption.copy(fontSize = 11.sp), color = c.heroMuted)
-                    }
+            if (large || cards.size == 1) {
+                Column(verticalArrangement = Arrangement.spacedBy(Space.m)) { cards.forEach { card(Modifier.fillMaxWidth(), it) } }
+            } else {
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                    cards.forEach { card(Modifier.weight(1f).fillMaxHeight(), it) }
                 }
             }
         }
 
         if (machine == null || grinder == null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (machine == null) PillButton("Maschine einrichten", { nav.navigate(Routes.equipment(EquipmentKind.MACHINE)) }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
-                if (grinder == null) PillButton("Mühle einrichten", { nav.navigate(Routes.equipment(EquipmentKind.GRINDER)) }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
+            val setupButtons = listOfNotNull(
+                machine?.let { null } ?: ("Maschine einrichten" to EquipmentKind.MACHINE),
+                grinder?.let { null } ?: ("Mühle einrichten" to EquipmentKind.GRINDER),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+                setupButtons.forEach { (label, kind) -> PillButton(label, { nav.navigate(Routes.equipment(kind)) }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost, height = Space.touch) }
             }
         } else {
             Text("Tippe auf ein Gerät für Details, Zähler und Pflege.", style = DropsType.caption, color = c.muted)
         }
 
         if (machine?.waterHardness != null) {
-            DropsCard(Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            DropsCard(Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = Space.l, vertical = Space.m)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
                     Icon(DropsIcons.Drop, null, tint = c.ice, size = 20.dp)
                     Text(
-                        "Wasser: Leitung ${Format.hardness(machine.waterHardness)} → Filter ${Format.hardness(machine.filteredHardness)}",
+                        "Wasserhärte: Leitung ${Format.hardness(machine.waterHardness)}" + (machine.filteredHardness?.let { " → nach Filter ${Format.hardness(it)}" } ?: ""),
                         style = DropsType.body.copy(fontSize = 14.sp), color = c.ink, modifier = Modifier.weight(1f),
                     )
                 }
@@ -116,7 +126,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                         Text("Erinnerungen einschalten", style = DropsType.bodyStrong, color = c.ink)
                         Text("Wenn Pflege fällig ist oder eine Tüte fast leer ist", style = DropsType.small, color = c.muted)
                     }
-                    Text("›", style = DropsType.headline, color = c.muted)
+                    Icon(DropsIcons.Chevron, null, tint = c.muted, size = 20.dp)
                 }
             }
         }
@@ -152,7 +162,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                             style = DropsType.small, color = c.muted,
                         )
                     }
-                    Text("›", style = DropsType.headline, color = c.muted)
+                    Icon(DropsIcons.Chevron, null, tint = c.muted, size = 20.dp)
                 }
             }
         }
@@ -188,7 +198,7 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                 PillButton("Exportieren", { exporter.launch("drops-backup-${vm.now().toString().take(10)}.json") }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
                 PillButton("Einspielen", { confirmImport = "backup" }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
             }
-            TextAction("Von Beanconqueror umziehen (Export-ZIP wählen)", { confirmImport = "bc" })
+            TextAction("Von Beanconqueror übernehmen", { confirmImport = "bc" })
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

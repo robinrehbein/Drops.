@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui
 
+import androidx.compose.ui.semantics.heading
 import androidx.compose.material3.minimumInteractiveComponentSize
 import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
@@ -71,10 +72,15 @@ fun rememberLargeFont(): Boolean = androidx.compose.ui.platform.LocalDensity.cur
 fun Eyebrow(text: String, color: Color = Drops.colors.muted) =
     Text(text.uppercase(), style = DropsType.eyebrow, color = color)
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun SectionHeader(title: String, action: String? = null, onAction: (() -> Unit)? = null, trailing: String? = null) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = DropsType.section, color = Drops.colors.ink)
+    // Wraps the action or note under the title when both do not fit.
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.fillMaxWidth().semantics { heading() }, horizontalArrangement = Arrangement.SpaceBetween,
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = DropsType.section, color = Drops.colors.ink, modifier = Modifier.padding(end = Space.m))
         when {
             action != null && onAction != null -> TextAction(action, onAction)
             trailing != null -> Text(trailing, style = DropsType.small, color = Drops.colors.muted)
@@ -241,14 +247,18 @@ fun TaskRow(status: TaskStatus, compact: Boolean, onBuy: ((String) -> Unit)? = n
                 Text(status.task.name, style = DropsType.bodyStrong, color = c.ink)
                 Text(if (compact) status.label() else status.task.description.ifBlank { intervalText(status) }, style = DropsType.caption, color = if (compact) fg else c.muted)
             }
-            // With large text the name needs the full width; the button moves below.
-            if (!large) done()
+            // Compact rows (Heute) keep the button beside the name; with large text it moves below.
+            if (compact && !large) done()
         }
-        if (large) done()
+        if (compact && large) done()
         if (!compact) {
+            // The full plan: progress and "Erledigt" share the bottom line, so the name keeps the full width.
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
-                ProgressBar(status.progress.toFloat(), fg, Modifier.weight(1f))
-                Text(status.label(), style = DropsType.caption.copy(fontFamily = MonoFamily), color = fg)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+                    ProgressBar(status.progress.toFloat(), fg, Modifier.fillMaxWidth())
+                    Text(status.label(), style = DropsType.caption, color = fg)
+                }
+                done()
             }
         }
         val supply = status.task.supply
