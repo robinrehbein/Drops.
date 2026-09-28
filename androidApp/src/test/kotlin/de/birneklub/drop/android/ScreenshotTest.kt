@@ -50,7 +50,7 @@ import java.util.TimeZone
  * uploaded as a CI artifact (`./gradlew :androidApp:recordRoborazziDebug`).
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
-@Config(qualifiers = "w360dp-h1600dp-xxhdpi")
+@Config(qualifiers = "w360dp-h2600dp-xxhdpi")
 class ScreenshotTest(private val variant: Variant) {
 
     enum class Variant(val data: Boolean, val fontScale: Float = 1f, val dark: Boolean = false) {

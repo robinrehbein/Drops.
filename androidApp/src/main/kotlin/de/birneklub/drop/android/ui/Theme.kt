@@ -1,5 +1,6 @@
 package de.birneklub.drop.android.ui
 
+import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -111,11 +112,12 @@ object DropsType {
     val display = TextStyle(fontFamily = SerifFamily, fontSize = 40.sp, lineHeight = 42.sp, letterSpacing = (-0.01).em)
     val title = TextStyle(fontFamily = SerifFamily, fontSize = 32.sp, lineHeight = 34.sp)
     val headline = TextStyle(fontFamily = SerifFamily, fontSize = 26.sp, lineHeight = 28.sp)
-    val section = TextStyle(fontFamily = SansFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-    val body = TextStyle(fontFamily = SansFamily, fontSize = 15.sp, lineHeight = 21.sp)
+    // Long German compounds ("Brühgruppendichtung") break with a hyphen instead of mid-word.
+    val section = TextStyle(fontFamily = SansFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, hyphens = Hyphens.Auto)
+    val body = TextStyle(fontFamily = SansFamily, fontSize = 15.sp, lineHeight = 21.sp, hyphens = Hyphens.Auto)
     val bodyStrong = body.copy(fontWeight = FontWeight.Medium)
-    val small = TextStyle(fontFamily = SansFamily, fontSize = 13.sp, lineHeight = 18.sp)
-    val caption = TextStyle(fontFamily = SansFamily, fontSize = 12.sp, lineHeight = 16.sp)
+    val small = TextStyle(fontFamily = SansFamily, fontSize = 13.sp, lineHeight = 18.sp, hyphens = Hyphens.Auto)
+    val caption = TextStyle(fontFamily = SansFamily, fontSize = 12.sp, lineHeight = 16.sp, hyphens = Hyphens.Auto)
     val number = TextStyle(fontFamily = MonoFamily, fontSize = 18.sp)
     val numberLarge = TextStyle(fontFamily = MonoFamily, fontSize = 24.sp, fontWeight = FontWeight.Medium)
     val eyebrow = TextStyle(fontFamily = MonoFamily, fontSize = 11.sp, letterSpacing = 0.12.em)
