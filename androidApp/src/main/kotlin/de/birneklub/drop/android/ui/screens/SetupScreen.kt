@@ -195,8 +195,8 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PillButton("Exportieren", { exporter.launch("drops-backup-${vm.now().toString().take(10)}.json") }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
-                PillButton("Einspielen", { confirmImport = "backup" }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
+                PillButton("Exportieren", { exporter.launch("drops-backup-${vm.now().toString().take(10)}.json") }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 48.dp)
+                PillButton("Einspielen", { confirmImport = "backup" }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 48.dp)
             }
             TextAction("Von Beanconqueror übernehmen", { confirmImport = "bc" })
         }
