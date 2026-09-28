@@ -40,6 +40,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import de.birneklub.drop.android.ui.screens.RecipeScreen
+import de.birneklub.drop.android.ui.screens.EquipmentReplaceScreen
+import de.birneklub.drop.android.ui.screens.TaskScreen
 import de.birneklub.drop.android.ui.screens.ShotEditScreen
 import de.birneklub.drop.android.ui.screens.ShotsScreen
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -74,6 +76,8 @@ object Routes {
     const val ACCOUNT = "account"
     const val ONBOARDING = "onboarding"
     const val EQUIPMENT = "equipment/{kind}"
+    const val EQUIPMENT_REPLACE = "equipment/{kind}/replace"
+    const val TASK = "task/{equipmentId}/{taskId}"
     const val ROASTER_CARD = "card/{payload}"
 
     fun bean(id: String) = "bean/$id"
@@ -85,6 +89,8 @@ object Routes {
         "recipe/$beanId/${recipeId ?: "new"}" + (copyOf?.let { "?copy=$it" } ?: "")
     fun shot(beanId: String) = "shot/$beanId"
     fun equipment(kind: EquipmentKind) = "equipment/${kind.name}"
+    fun replaceEquipment(kind: EquipmentKind) = "equipment/${kind.name}/replace"
+    fun task(equipmentId: String, taskId: String? = null) = "task/$equipmentId/${taskId ?: "new"}"
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -166,6 +172,13 @@ fun DropsRoot(container: AppContainer, deepLink: MutableStateFlow<String?> = Mut
             composable(Routes.EQUIPMENT) {
                 val kind = EquipmentKind.entries.firstOrNull { k -> k.name == it.arguments?.getString("kind") } ?: EquipmentKind.MACHINE
                 EquipmentScreen(vm, nav, kind)
+            }
+            composable(Routes.EQUIPMENT_REPLACE) {
+                val kind = EquipmentKind.entries.firstOrNull { k -> k.name == it.arguments?.getString("kind") } ?: EquipmentKind.MACHINE
+                EquipmentReplaceScreen(vm, nav, kind, replacing = true)
+            }
+            composable(Routes.TASK) {
+                TaskScreen(vm, nav, it.arguments?.getString("equipmentId").orEmpty(), it.arguments?.getString("taskId")?.takeIf { id -> id != "new" })
             }
         }
     }

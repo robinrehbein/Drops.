@@ -224,8 +224,19 @@ class DropsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     // --- care ------------------------------------------------------------------
-    fun completeTask(status: TaskStatus) = write("${status.task.name}: erledigt") { repo.completeTask(status.task.id); stats.count(StatEvents.TASK_DONE) }
-    fun saveEquipment(e: Equipment) = write { repo.saveEquipment(e) }
+    fun completeTask(status: TaskStatus) = viewModelScope.launch {
+        val before = repo.completeTask(status.task.id) ?: return@launch
+        stats.count(StatEvents.TASK_DONE)
+        sayWithUndo("${status.task.name}: erledigt") { repo.saveTask(before) }
+        scheduleSync()
+    }
+    fun saveEquipment(e: Equipment, message: String? = null) = write(message) { repo.saveEquipment(e) }
+    fun saveTask(task: MaintenanceTask, message: String) = write(message) { repo.saveTask(task) }
+    fun deleteTask(task: MaintenanceTask) = viewModelScope.launch {
+        val gone = repo.deleteTask(task.id) ?: return@launch
+        sayWithUndo("„${task.name}“ gelöscht") { repo.saveTask(gone) }
+        scheduleSync()
+    }
     fun removeSampleData() = write("Beispieldaten entfernt") { repo.removeSampleData() }
 
     // --- setup -------------------------------------------------------------------

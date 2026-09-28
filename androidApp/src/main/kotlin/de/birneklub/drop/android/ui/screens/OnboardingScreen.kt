@@ -124,14 +124,21 @@ fun OnboardingScreen(vm: DropsViewModel, nav: NavController) {
     }
 }
 
-/** Setup tab: swap the machine or grinder later. */
+/** Picks a machine or grinder from the catalog: first setup, or replacing the current one (after a warning). */
 @Composable
-fun EquipmentScreen(vm: DropsViewModel, nav: NavController, kind: EquipmentKind) {
+fun EquipmentReplaceScreen(vm: DropsViewModel, nav: NavController, kind: EquipmentKind, replacing: Boolean) {
     ScreenColumn {
         Row(verticalAlignment = Alignment.CenterVertically) { TextAction("‹ Zurück", { nav.popBackStack() }) }
-        ScreenTitle(if (kind == EquipmentKind.MACHINE) "Maschine ändern" else "Mühle ändern")
+        ScreenTitle(
+            when {
+                !replacing -> if (kind == EquipmentKind.MACHINE) "Maschine einrichten" else "Mühle einrichten"
+                kind == EquipmentKind.MACHINE -> "Neue Maschine"
+                else -> "Neue Mühle"
+            },
+        )
         Text(
-            "Der Pflegeplan wird neu angelegt. Deine Shots und Rezepte bleiben.",
+            if (replacing) "Das neue Gerät bekommt seinen eigenen Pflegeplan. Deine Shots und Rezepte bleiben."
+            else "Aus dem Gerät ergeben sich Pflegeplan und Erinnerungen.",
             style = DropsType.body, color = Drops.colors.muted,
         )
         EquipmentPicker(kind, suggestedFor = null) { machine, grinder, custom ->

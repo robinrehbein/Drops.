@@ -28,6 +28,7 @@ import de.birneklub.drop.android.ui.screens.ShotsScreen
 import de.birneklub.drop.android.ui.screens.RoasterCardScreen
 import de.birneklub.drop.android.ui.screens.SetupScreen
 import de.birneklub.drop.android.ui.screens.ShotScreen
+import de.birneklub.drop.android.ui.screens.TaskScreen
 import de.birneklub.drop.android.ui.screens.TodayScreen
 import de.birneklub.drop.core.model.EquipmentKind
 import de.birneklub.drop.core.model.Process
@@ -95,6 +96,7 @@ class ScreenshotTest(private val variant: Variant) {
     @Test fun onboarding() = shoot("01_onboarding") { OnboardingScreen(it, rememberNavController()) }
     @Test fun setup() = shoot("02_setup") { SetupScreen(it, rememberNavController()) }
     @Test fun equipment() = shoot("02b_equipment") { EquipmentScreen(it, rememberNavController(), EquipmentKind.GRINDER) }
+    @Test fun task() = shoot("02c_task") { TaskScreen(it, rememberNavController(), "sample-machine", "sample-t-backflush") }
     @Test fun today() = shoot("03_today") { TodayScreen(it, rememberNavController()) }
     @Test fun beans() = shoot("04_beans") { BeansScreen(it, rememberNavController()) }
     @Test fun beanDetail() = shoot("05_bean_detail") { BeanDetailScreen(it, rememberNavController(), "sample-guji") }

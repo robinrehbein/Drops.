@@ -267,10 +267,19 @@ class DropsRepository(
 
     suspend fun saveTask(task: MaintenanceTask) = withContext(io) { write(SyncCollections.TASKS, MaintenanceTask.serializer(), task.copy(updatedAt = now())) }
 
-    suspend fun completeTask(taskId: String) = withContext(io) {
-        val task = read(SyncCollections.TASKS, taskId, MaintenanceTask.serializer()) ?: return@withContext
+    /** Marks the task done now; returns how it was before, so the user can undo. */
+    suspend fun completeTask(taskId: String): MaintenanceTask? = withContext(io) {
+        val task = read(SyncCollections.TASKS, taskId, MaintenanceTask.serializer()) ?: return@withContext null
         val equipment = read(SyncCollections.EQUIPMENT, task.equipmentId, Equipment.serializer())
         write(SyncCollections.TASKS, MaintenanceTask.serializer(), Maintenance.markDone(task, equipment, now()))
+        task
+    }
+
+    /** Deletes a care task (tombstone for sync); returns it for undo via [saveTask]. */
+    suspend fun deleteTask(taskId: String): MaintenanceTask? = withContext(io) {
+        val task = read(SyncCollections.TASKS, taskId, MaintenanceTask.serializer()) ?: return@withContext null
+        tombstone(SyncCollections.TASKS, taskId)
+        task
     }
 
     // --- reminders -------------------------------------------------------------
