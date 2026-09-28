@@ -59,6 +59,11 @@ data class Bean(
     val wouldRebuy: Boolean? = null,
     val purchase: Purchase? = null,
     val inHopper: Boolean = false,
+    /**
+     * The recipe the user brews this bean with. Optional so older app versions
+     * (which ignore unknown fields) keep syncing; null means the first recipe.
+     */
+    val recipeId: String? = null,
     override val updatedAt: Instant,
 ) : Entity
 

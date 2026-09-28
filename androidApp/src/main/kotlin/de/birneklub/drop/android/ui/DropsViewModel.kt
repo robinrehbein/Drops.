@@ -47,7 +47,9 @@ data class LibraryState(
     val loaded: Boolean = false,
 ) {
     val hopperBean: Bean? get() = beans.firstOrNull { it.inHopper } ?: beans.firstOrNull { it.status == de.birneklub.drop.core.model.BeanStatus.OPEN }
-    fun recipesFor(beanId: String) = recipes.filter { it.beanId == beanId }.sortedBy { it.name }
+    fun recipesFor(beanId: String) = recipes.filter { it.beanId == beanId }.sortedBy { it.name.lowercase() }
+    /** The recipe the bean is brewed with (chosen on the bean, else the first). */
+    fun selectedRecipe(bean: Bean) = de.birneklub.drop.core.domain.Recipes.selected(bean, recipes)
     fun shotsFor(beanId: String) = shots.filter { it.beanId == beanId }.sortedBy { it.pulledAt }
     fun bean(id: String) = beans.firstOrNull { it.id == id }
     fun carePlan(now: kotlinx.datetime.Instant): List<TaskStatus> = Maintenance.plan(tasks, equipment, now)
@@ -191,7 +193,27 @@ class DropsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun addBean(bean: Bean) = write("${bean.name} angelegt") { repo.saveBean(bean); stats.count(StatEvents.BEAN_ADDED) }
-    fun adoptShot(shot: Shot) = write("Rezept aktualisiert") { repo.adoptShotAsRecipe(shot) }
+    /** Stores a good shot as the recipe: over the one it was brewed with, or as a new one. */
+    fun adoptShot(shot: Shot, overwrite: Boolean, newName: String = "Espresso") =
+        write(if (overwrite) "Rezept aktualisiert" else "Neues Rezept „$newName“ angelegt") { repo.adoptShotAsRecipe(shot, overwrite, newName) }
+
+    fun selectRecipe(bean: Bean, recipe: Recipe) = write { repo.selectRecipe(bean.id, recipe.id) }
+
+    /** Saves a new or edited recipe and brews with it from now on. */
+    fun saveAndSelectRecipe(recipe: Recipe, message: String) = write(message) {
+        repo.saveRecipe(recipe)
+        repo.selectRecipe(recipe.beanId, recipe.id)
+    }
+
+    fun deleteRecipe(recipe: Recipe) = viewModelScope.launch {
+        val wasSelected = library.value.bean(recipe.beanId)?.recipeId == recipe.id
+        val gone = repo.deleteRecipe(recipe.id) ?: return@launch
+        sayWithUndo("Rezept „${recipe.name}“ gelöscht") {
+            repo.saveRecipe(gone)
+            if (wasSelected) repo.selectRecipe(gone.beanId, gone.id)
+        }
+        scheduleSync()
+    }
 
     // --- care ------------------------------------------------------------------
     fun completeTask(status: TaskStatus) = write("${status.task.name}: erledigt") { repo.completeTask(status.task.id); stats.count(StatEvents.TASK_DONE) }

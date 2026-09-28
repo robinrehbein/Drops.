@@ -1,5 +1,7 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.android.ui.ConfirmDialog
+import de.birneklub.drop.core.domain.RecipeDraft
 import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -73,7 +75,7 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
     val c = Drops.colors
     val reduced = rememberReducedMotion()
     if (bean == null) return
-    val recipe: Recipe? = lib.recipesFor(bean.id).firstOrNull()
+    val recipe: Recipe? = lib.selectedRecipe(bean)
 
     var elapsed by rememberSaveable { mutableDoubleStateOf(0.0) }
     var running by remember { mutableStateOf(false) }
@@ -89,6 +91,7 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
     var temp by rememberSaveable { mutableIntStateOf(recipe?.temperatureC ?: last?.temperatureC ?: 93) }
     var taste by rememberSaveable { mutableIntStateOf(Taste.BALANCED.ordinal) }
     var saved by remember { mutableStateOf<Shot?>(null) }
+    var adopting by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(running) {
         if (!running) return@LaunchedEffect
@@ -181,7 +184,11 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
 
             // Enters below the advice once a good shot is saved.
             AnimatedVisibility(saved != null && advice.adoptAsRecipe, enter = Motion.expandIn(reduced), exit = Motion.collapseOut(reduced)) {
-                PillButton("Als Rezept übernehmen", { saved?.let(vm::adoptShot); nav.popBackStack() }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
+                PillButton("Als Rezept übernehmen", {
+                    val shot = saved ?: return@PillButton
+                    if (recipe != null && shot.recipeId == recipe.id) adopting = true
+                    else { vm.adoptShot(shot, overwrite = false); nav.popBackStack() }
+                }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
             }
         }
 
@@ -201,6 +208,21 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
             kind = ButtonKind.Ink,
             height = 56.dp,
+        )
+    }
+    if (adopting && recipe != null) {
+        ConfirmDialog(
+            title = "Rezept überschreiben?",
+            text = "„${recipe.name}“ bekommt Mahlgrad, Dosis, Ertrag und Temperatur dieses Shots. Oder du legst ein neues Rezept an und behältst das alte.",
+            confirm = "Überschreiben",
+            destructive = false,
+            alternative = "Als neues Rezept",
+            onAlternative = {
+                saved?.let { vm.adoptShot(it, overwrite = false, newName = RecipeDraft.freeName("Espresso", lib.recipesFor(bean.id).map { r -> r.name })) }
+                nav.popBackStack()
+            },
+            onConfirm = { saved?.let { vm.adoptShot(it, overwrite = true) }; nav.popBackStack() },
+            onDismiss = { adopting = false },
         )
     }
 }

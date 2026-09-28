@@ -22,6 +22,7 @@ import de.birneklub.drop.android.ui.screens.EquipmentScreen
 import de.birneklub.drop.android.ui.screens.MapMode
 import de.birneklub.drop.android.ui.screens.MapScreen
 import de.birneklub.drop.android.ui.screens.OnboardingScreen
+import de.birneklub.drop.android.ui.screens.RecipeScreen
 import de.birneklub.drop.android.ui.screens.RoasterCardScreen
 import de.birneklub.drop.android.ui.screens.SetupScreen
 import de.birneklub.drop.android.ui.screens.ShotScreen
@@ -97,6 +98,7 @@ class ScreenshotTest(private val variant: Variant) {
     @Test fun beanDetail() = shoot("05_bean_detail") { BeanDetailScreen(it, rememberNavController(), "sample-guji") }
     @Test fun addBean() = shoot("06_add_bean") { AddBeanScreen(it, rememberNavController()) }
     @Test fun editBean() = shoot("06b_edit_bean") { AddBeanScreen(it, rememberNavController(), "sample-guji") }
+    @Test fun recipe() = shoot("06c_recipe") { RecipeScreen(it, rememberNavController(), "sample-guji", "sample-r-guji", null) }
     @Test fun shot() = shoot("07_shot") { ShotScreen(it, rememberNavController(), "sample-guji") }
     @Test fun map() = shoot("08_map") { MapScreen(it) }
     @Test fun discover() = shoot("09_discover") { MapScreen(it, MapMode.DISCOVER) }

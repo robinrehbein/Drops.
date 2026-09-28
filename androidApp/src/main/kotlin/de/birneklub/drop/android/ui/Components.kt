@@ -134,19 +134,20 @@ fun PillButton(
         ButtonKind.GhostOnHero -> Triple(Color.Transparent, c.heroInk, c.heroOutline)
     }
     val shape = RoundedCornerShape(height / 2)
+    // Grows with large fonts instead of cutting the label off.
     Row(
         modifier
-            .height(height)
+            .heightIn(min = height)
             .clip(shape)
             .background(if (enabled) bg else bg.copy(alpha = 0.4f))
             .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 20.dp, vertical = Space.s),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) Icon(icon, null, tint = fg, size = 20.dp)
-        Text(text, style = DropsType.body.copy(fontWeight = if (kind == ButtonKind.Ghost || kind == ButtonKind.GhostOnHero) FontWeight.Medium else FontWeight.SemiBold, fontSize = 16.sp), color = fg, maxLines = 1)
+        Text(text, style = DropsType.body.copy(fontWeight = if (kind == ButtonKind.Ghost || kind == ButtonKind.GhostOnHero) FontWeight.Medium else FontWeight.SemiBold, fontSize = 16.sp), color = fg, textAlign = TextAlign.Center)
     }
 }
 
@@ -286,6 +287,9 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
     destructive: Boolean = true,
     dismiss: String = "Abbrechen",
+    /** A second way forward, e.g. "Als neues Rezept" next to "Überschreiben". */
+    alternative: String? = null,
+    onAlternative: () -> Unit = {},
     content: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val c = Drops.colors
@@ -300,6 +304,11 @@ fun ConfirmDialog(
             }
         },
         confirmButton = { TextAction(confirm, { onConfirm(); onDismiss() }, if (destructive) c.bad else c.accent) },
-        dismissButton = { TextAction(dismiss, onDismiss, c.ink) },
+        dismissButton = {
+            Row {
+                TextAction(dismiss, onDismiss, c.muted)
+                if (alternative != null) TextAction(alternative, { onAlternative(); onDismiss() }, c.ink)
+            }
+        },
     )
 }

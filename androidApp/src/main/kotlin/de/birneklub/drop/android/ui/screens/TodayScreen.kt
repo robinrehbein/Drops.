@@ -99,7 +99,7 @@ fun TodayScreen(vm: DropsViewModel, nav: NavController) {
 
         val bean = lib.hopperBean
         if (bean != null) {
-            HopperCard(bean, lib.recipesFor(bean.id).firstOrNull(), now.toLocalDateTime(zone).date,
+            HopperCard(bean, lib.selectedRecipe(bean), now.toLocalDateTime(zone).date,
                 onShot = { nav.navigate(Routes.shot(bean.id)) }, onRecipe = { nav.navigate(Routes.bean(bean.id)) })
         } else if (lib.loaded) {
             HeroCard {
