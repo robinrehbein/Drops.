@@ -153,7 +153,8 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                     }
                 }
 
-                if (shots.size > 1) DialInChart(shots)
+                if (shots.size > 1) DialInChart(shots, onHistory = { nav.navigate(Routes.shots(bean.id)) })
+                else if (shots.size == 1) de.birneklub.drop.android.ui.SectionHeader("1 Shot", "Verlauf", { nav.navigate(Routes.shots(bean.id)) })
 
                 DropsCard(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -253,14 +254,14 @@ private fun RecipeCard(r: Recipe) {
 }
 
 @Composable
-private fun DialInChart(shots: List<Shot>) {
+private fun DialInChart(shots: List<Shot>, onHistory: () -> Unit) {
     val c = Drops.colors
     val colors = listOf(c.accent, c.heroAccent, c.ok, c.muted, c.ink)
     val grinds = shots.map { it.grindSetting }
     val min = (grinds.min() * 2).let { kotlin.math.floor(it) / 2 } - 0.5
     val max = (grinds.max() * 2).let { kotlin.math.ceil(it) / 2 } + 0.5
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        de.birneklub.drop.android.ui.SectionHeader("Dial-in · ${shots.size} Shots", trailing = "Mahlgrad je Shot")
+        de.birneklub.drop.android.ui.SectionHeader("Dial-in · ${shots.size} Shots", "Verlauf", onHistory)
         DropsCard(Modifier.fillMaxWidth()) {
             Row {
                 Column(Modifier.height(120.dp), verticalArrangement = Arrangement.SpaceBetween) {

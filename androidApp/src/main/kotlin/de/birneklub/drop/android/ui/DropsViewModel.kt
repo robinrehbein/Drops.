@@ -180,6 +180,14 @@ class DropsViewModel(private val container: AppContainer) : ViewModel() {
 
     // --- shots -----------------------------------------------------------------
     fun logShot(shot: Shot) = write("Shot gespeichert") { repo.logShot(shot); stats.count(StatEvents.SHOT_LOGGED) }
+    fun updateShot(shot: Shot) = write("Shot korrigiert") { repo.updateShot(shot) }
+
+    /** Gives back the dose to the bag and the counters; undo logs it again. */
+    fun deleteShot(shot: Shot) = viewModelScope.launch {
+        val gone = repo.deleteShot(shot.id) ?: return@launch
+        sayWithUndo("Shot gelöscht") { repo.logShot(gone) }
+        scheduleSync()
+    }
     /** Adds the coffee and the roaster's starting recipe from a scanned card; returns the bean id. */
     fun addRoasterCard(card: de.birneklub.drop.core.roaster.RoasterCard): String {
         val (bean, recipe) = card.toBeanAndRecipe(repo.newId(), repo.newId(), repo.now())

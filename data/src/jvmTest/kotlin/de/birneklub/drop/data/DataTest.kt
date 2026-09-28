@@ -311,4 +311,46 @@ class DataTest {
         repo.saveRecipe(gone)
         assertNotNull(repo.recipes.first().firstOrNull { it.id == gone.id }, "undo restores it")
     }
+
+    @Test
+    fun editingAndDeletingShotsCorrectsBagAndCounters() = runTest {
+        val repo = repo()
+        repo.seedIfEmpty()
+        fun kinds() = repo.equipment
+        val before = kinds().first().associateBy { it.kind }
+        val shot = Shot("s-new", "sample-guji", "sample-r-guji", fixedNow, 14.5, 18.0, 38.0, 28.0, 93, Taste.BALANCED, fixedNow)
+        repo.logShot(shot)
+        assertEquals(124.0, repo.beans.first().single { it.id == "sample-guji" }.remainingGrams)
+
+        repo.updateShot(shot.copy(doseGrams = 20.0, taste = Taste.SOUR))
+        assertEquals(122.0, repo.beans.first().single { it.id == "sample-guji" }.remainingGrams)
+        var now = kinds().first().associateBy { it.kind }
+        assertEquals(before.getValue(de.birneklub.drop.core.model.EquipmentKind.MACHINE).shotCount + 1, now.getValue(de.birneklub.drop.core.model.EquipmentKind.MACHINE).shotCount)
+        assertEquals(before.getValue(de.birneklub.drop.core.model.EquipmentKind.GRINDER).groundKg + 0.020, now.getValue(de.birneklub.drop.core.model.EquipmentKind.GRINDER).groundKg, 1e-9)
+        assertEquals(Taste.SOUR, repo.shots.first().single { it.id == "s-new" }.taste)
+
+        val deleted = assertNotNull(repo.deleteShot("s-new"))
+        assertEquals(142.0, repo.beans.first().single { it.id == "sample-guji" }.remainingGrams)
+        now = kinds().first().associateBy { it.kind }
+        assertEquals(before.getValue(de.birneklub.drop.core.model.EquipmentKind.MACHINE).shotCount, now.getValue(de.birneklub.drop.core.model.EquipmentKind.MACHINE).shotCount)
+        assertEquals(before.getValue(de.birneklub.drop.core.model.EquipmentKind.GRINDER).groundKg, now.getValue(de.birneklub.drop.core.model.EquipmentKind.GRINDER).groundKg, 1e-9)
+        assertNull(repo.shots.first().firstOrNull { it.id == "s-new" })
+
+        repo.logShot(deleted)
+        assertEquals(122.0, repo.beans.first().single { it.id == "sample-guji" }.remainingGrams, "undo uses the corrected dose")
+    }
+
+    @Test
+    fun giveBackNeverOverfillsTheBag() = runTest {
+        val repo = repo()
+        repo.seedIfEmpty()
+        // A sample shot that was pulled before the bag's remaining grams were entered.
+        repo.deleteShot("sample-s0")
+        repo.deleteShot("sample-s1")
+        repo.deleteShot("sample-s2")
+        repo.deleteShot("sample-s3")
+        repo.deleteShot("sample-s4")
+        repo.deleteShot("sample-s5")
+        assertEquals(250.0, repo.beans.first().single { it.id == "sample-guji" }.remainingGrams)
+    }
 }

@@ -171,7 +171,7 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Wie schmeckt er?", style = DropsType.section, color = c.ink)
-                Segmented(listOf("Sauer", "Leicht sauer", "Balance", "Leicht bitter", "Bitter"), taste, { taste = it; running = false; saved = null }, Modifier.fillMaxWidth(), DropsType.caption.copy(fontSize = 11.sp))
+                Segmented(TasteLabels, taste, { taste = it; running = false; saved = null }, Modifier.fillMaxWidth(), DropsType.caption.copy(fontSize = 11.sp))
             }
 
             Row(
