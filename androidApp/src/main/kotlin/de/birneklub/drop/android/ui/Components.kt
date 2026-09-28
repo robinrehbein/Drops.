@@ -144,13 +144,15 @@ fun PillButton(
         modifier
             .heightIn(min = height)
             .clip(shape)
-            .background(if (enabled) bg else bg.copy(alpha = 0.4f))
+            // Transparent stays transparent: copying its alpha would turn it black.
+            .background(if (enabled || bg.alpha == 0f) bg else bg.copy(alpha = 0.4f))
             .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = Space.s),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val fg = if (enabled) fg else fg.copy(alpha = 0.5f)
         if (icon != null) Icon(icon, null, tint = fg, size = 20.dp)
         Text(text, style = DropsType.body.copy(fontWeight = if (kind == ButtonKind.Ghost || kind == ButtonKind.GhostOnHero) FontWeight.Medium else FontWeight.SemiBold, fontSize = 16.sp), color = fg, textAlign = TextAlign.Center)
     }

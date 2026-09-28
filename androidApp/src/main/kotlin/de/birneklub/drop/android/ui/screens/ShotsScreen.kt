@@ -195,7 +195,11 @@ fun ShotEditScreen(vm: DropsViewModel, nav: NavController, shotId: String) {
 }
 
 /** The five-step taste scale, with wording shared by every screen. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun TasteSelector(selected: Taste, onSelect: (Taste) -> Unit) {
-    Segmented(TasteLabels, selected.ordinal, { onSelect(Taste.entries[it]) }, Modifier.fillMaxWidth(), DropsType.caption)
+    // Chips wrap onto a second line instead of squeezing five words into one.
+    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+        Taste.entries.forEach { t -> de.birneklub.drop.android.ui.Chip(TasteLabels[t.ordinal], t == selected) { onSelect(t) } }
+    }
 }

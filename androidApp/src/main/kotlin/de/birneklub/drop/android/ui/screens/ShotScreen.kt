@@ -1,5 +1,12 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.ui.text.style.TextAlign
+import de.birneklub.drop.android.ui.rememberLargeFont
+import de.birneklub.drop.android.ui.Space
+import de.birneklub.drop.android.ui.FieldRowScope
 import androidx.activity.compose.BackHandler
 import de.birneklub.drop.core.domain.BrewLimits
 import de.birneklub.drop.android.ui.Routes
@@ -114,14 +121,14 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
     val tmin = recipe?.targetTimeMinSec ?: 25
     val tmax = recipe?.targetTimeMaxSec ?: 30
     val inZone = elapsed >= tmin && elapsed <= tmax
+    val large = rememberLargeFont()
     val advice = DialIn.advise(Taste.entries[taste], elapsed, recipe, scale?.step ?: 0.5)
 
     Column(Modifier.fillMaxSize().background(c.paper).statusBarsPadding().navigationBarsPadding()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 TextAction("Abbrechen", { if (unsaved) leaving = true else nav.popBackStack() })
-                Eyebrow("Shot #${(lib.equipment.firstOrNull { it.shotCount > 0 }?.shotCount ?: 0) + 1}")
-                Box(Modifier.size(72.dp, 1.dp))
+                lib.equipment.firstOrNull { it.kind == EquipmentKind.MACHINE }?.let { Eyebrow("Shot Nr. ${Format.integer(it.shotCount + 1)}") }
             }
 
             DropsCard(Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
@@ -145,43 +152,46 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                         val arcSize = Size(size.width - stroke, size.height - stroke)
                         val topLeft = Offset(inset, inset)
                         drawArc(c.track, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
-                        drawArc(c.okSoft, -90f + tmin / 40f * 360f, (tmax - tmin) / 40f * 360f, false, topLeft, arcSize, style = Stroke(stroke))
+                        // Target window: a narrow band in the full ok colour, visible against the track in light and dark.
+                        drawArc(c.ok, -90f + tmin / 40f * 360f, (tmax - tmin) / 40f * 360f, false, topLeft, arcSize, style = Stroke(stroke / 3))
                         drawArc(if (inZone) c.ok else c.accent, -90f, (elapsed / 40.0).coerceAtMost(1.0).toFloat() * 360f, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(Format.number(elapsed), style = DropsType.numberLarge.copy(fontSize = 56.sp), color = c.ink)
-                        Text("Ziel $tmin–$tmax s", style = DropsType.small, color = c.muted)
+                        Text("Ziel ${Format.secondsRange(tmin, tmax)}", style = DropsType.small, color = c.muted)
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    PillButton(
-                        if (running) "Stopp" else if (elapsed > 0) "Weiter" else "Start",
-                        { running = !running; saved = null },
-                        Modifier.size(150.dp, 52.dp),
-                        kind = if (running) ButtonKind.Ink else ButtonKind.Accent,
-                    )
-                    PillButton("Zurücksetzen", { running = false; elapsed = 0.0; saved = null }, kind = ButtonKind.Ghost)
+                val toggle = @Composable { m: Modifier ->
+                    PillButton(if (running) "Stopp" else if (elapsed > 0) "Weiter" else "Start", { running = !running; saved = null }, m, kind = if (running) ButtonKind.Ink else ButtonKind.Accent)
+                }
+                val reset = @Composable { m: Modifier -> PillButton("Zurücksetzen", { running = false; elapsed = 0.0; saved = null }, m, kind = ButtonKind.Ghost, enabled = elapsed > 0) }
+                if (large) {
+                    toggle(Modifier.fillMaxWidth())
+                    reset(Modifier.fillMaxWidth())
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                        toggle(Modifier.weight(1f))
+                        reset(Modifier.weight(1f))
+                    }
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Stepper("Dosis", Format.grams(dose), Modifier.weight(1f), { dose = round1(dose + 0.1).coerceIn(BrewLimits.dose) }, { dose = round1(dose - 0.1).coerceIn(BrewLimits.dose) })
-                    Stepper("Ertrag", Format.grams(yieldG), Modifier.weight(1f), { yieldG = round1(yieldG + 0.5).coerceIn(BrewLimits.yield) }, { yieldG = round1(yieldG - 0.5).coerceIn(BrewLimits.yield) })
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Stepper(scale?.label?.takeIf { it == "Klicks" } ?: "Mahlgrad", Format.grind(grind), Modifier.weight(1f), { grind = nudge(grind, step, scale) }, { grind = nudge(grind, -step, scale) })
-                    Stepper("Temperatur", Format.celsius(temp), Modifier.weight(1f), { temp = (temp + 1).coerceIn(BrewLimits.temperature) }, { temp = (temp - 1).coerceIn(BrewLimits.temperature) })
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                StepperGrid(
+                    { Stepper("Dosis", Format.grams(dose), { dose = round1(dose + 0.1).coerceIn(BrewLimits.dose) }, { dose = round1(dose - 0.1).coerceIn(BrewLimits.dose) }) },
+                    { Stepper("Ertrag", Format.grams(yieldG), { yieldG = round1(yieldG + 0.5).coerceIn(BrewLimits.yield) }, { yieldG = round1(yieldG - 0.5).coerceIn(BrewLimits.yield) }) },
+                    { Stepper(scale?.label?.takeIf { it == "Klicks" } ?: "Mahlgrad", Format.grind(grind), { grind = nudge(grind, step, scale) }, { grind = nudge(grind, -step, scale) }) },
+                    { Stepper("Temperatur", Format.celsius(temp), { temp = (temp + 1).coerceIn(BrewLimits.temperature) }, { temp = (temp - 1).coerceIn(BrewLimits.temperature) }) },
+                )
                 Text(
-                    "Verhältnis ${Format.ratio(dose, yieldG)} · Fluss ${if (elapsed > 0) "${Format.number(yieldG / elapsed)} g/s" else Format.MISSING}",
-                    style = DropsType.small.copy(fontFamily = MonoFamily), color = c.muted, modifier = Modifier.align(Alignment.CenterHorizontally),
+                    Format.join("Verhältnis ${Format.ratio(dose, yieldG)}", if (elapsed > 0) "Fluss ${Format.number(yieldG / elapsed)}\u00A0g/s" else null),
+                    style = DropsType.small, color = c.muted, modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Wie schmeckt er?", style = DropsType.section, color = c.ink)
-                Segmented(TasteLabels, taste, { taste = it; running = false; saved = null }, Modifier.fillMaxWidth(), DropsType.caption.copy(fontSize = 11.sp))
+                TasteSelector(Taste.entries[taste]) { taste = it.ordinal; running = false; saved = null }
             }
 
             Row(
@@ -189,7 +199,11 @@ fun ShotScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(DropsIcons.Bulb, null, tint = c.ok, size = 20.dp)
-                Text(adviceText(advice, grind), style = DropsType.body.copy(fontSize = 14.sp), color = c.ink)
+                // Advice needs a pulled shot; before that the box says how to time it.
+                Text(
+                    if (elapsed > 0) adviceText(advice, grind) else "Starte die Zeit mit der Pumpe und stoppe sie, wenn die Waage den Ertrag zeigt.",
+                    style = DropsType.body.copy(fontSize = 14.sp), color = c.ink,
+                )
             }
 
             // Enters below the advice once a good shot is saved.
@@ -259,34 +273,52 @@ private fun adviceText(a: de.birneklub.drop.core.domain.DialInAdvice, grind: Dou
     val parts = mutableListOf<String>()
     if (a.grindDelta < 0) parts += "${Format.grind(-a.grindDelta)} feiner mahlen (${Format.grind(grind + a.grindDelta)})"
     if (a.grindDelta > 0) parts += "${Format.grind(a.grindDelta)} gröber mahlen (${Format.grind(grind + a.grindDelta)})"
-    if (a.temperatureDelta != 0) parts += "Temperatur ${if (a.temperatureDelta > 0) "+" else ""}${a.temperatureDelta} °C"
+    if (a.temperatureDelta != 0) parts += "Temperatur ${if (a.temperatureDelta > 0) "+" else "−"}${Format.celsius(kotlin.math.abs(a.temperatureDelta))}"
     if (a.yieldDeltaGrams != 0.0) parts += "oder ${Format.grams(-a.yieldDeltaGrams)} weniger Ertrag"
-    val speed = when { a.ranFast -> " Lief zu schnell."; a.ranSlow -> " Lief zu lang."; else -> "" }
+    val speed = when { a.ranFast -> " Lief zu schnell."; a.ranSlow -> " Lief zu lange."; else -> "" }
     return when {
         a.adoptAsRecipe -> "Treffer. Speichern und als Rezept übernehmen."
-        parts.isEmpty() -> "Schmeckt, läuft aber lang.$speed"
+        parts.isEmpty() -> "Schmeckt, läuft aber lange.$speed"
         else -> "Nächster Shot: ${parts.joinToString(", ")}.$speed"
     }
 }
 
+/** Two steppers per row, one per row with large text. */
 @Composable
-private fun Stepper(label: String, value: String, modifier: Modifier, onInc: () -> Unit, onDec: () -> Unit) {
+private fun StepperGrid(vararg items: @Composable FieldRowScope.() -> Unit) {
+    val perRow = if (rememberLargeFont()) 1 else 2
+    Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+        items.toList().chunked(perRow).forEach { row ->
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                row.forEach { item -> FieldRowScope(Modifier.weight(1f).fillMaxHeight()).item() }
+            }
+        }
+    }
+}
+
+/** Label and value, with 48 dp − and + buttons below so the value keeps the full width. */
+@Composable
+private fun FieldRowScope.Stepper(label: String, value: String, onInc: () -> Unit, onDec: () -> Unit) {
     val c = Drops.colors
-    DropsCard(modifier, padding = PaddingValues(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(label, style = DropsType.caption, color = c.muted)
-                Text(value, style = DropsType.numberLarge.copy(fontSize = 20.sp), color = c.ink)
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                listOf("+" to onInc, "−" to onDec).forEach { (sym, action) ->
-                    Box(
-                        Modifier.size(44.dp, 30.dp).clip(RoundedCornerShape(10.dp)).background(c.paper).border(1.dp, c.line, RoundedCornerShape(10.dp))
-                            .clickable(role = Role.Button, onClick = action).a11y("$label ${if (sym == "+") "erhöhen" else "verringern"}"),
-                        contentAlignment = Alignment.Center,
-                    ) { Text(sym, style = DropsType.body.copy(fontSize = 17.sp), color = c.ink) }
-                }
-            }
+    DropsCard(cell, padding = PaddingValues(horizontal = Space.xs, vertical = Space.s)) {
+        Text(label, style = DropsType.caption, color = c.muted, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Text(value, style = DropsType.bodyStrong.copy(fontSize = 20.sp), color = c.ink, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = Space.xs))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            StepButton("−", "$label verringern", onDec)
+            StepButton("+", "$label erhöhen", onInc)
+        }
+    }
+}
+
+@Composable
+private fun StepButton(symbol: String, label: String, onClick: () -> Unit) {
+    val c = Drops.colors
+    Box(
+        Modifier.size(Space.touch).clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClick = onClick).a11y(label),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(c.paper).border(1.dp, c.line, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+            Text(symbol, style = DropsType.body.copy(fontSize = 18.sp), color = c.ink)
         }
     }
 }
