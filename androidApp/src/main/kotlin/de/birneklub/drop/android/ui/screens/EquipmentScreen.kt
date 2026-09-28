@@ -90,8 +90,8 @@ fun EquipmentScreen(vm: DropsViewModel, nav: NavController, kind: EquipmentKind)
             FormSection("Wasser") {
                 FormCard {
                     FieldRow {
-                        FormField("Leitung (°dH)", draft.waterHardness, { draft = draft.copy(waterHardness = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, placeholder = "optional", error = errors[EquipmentDraft.Field.WATER])
-                        FormField("Nach Filter (°dH)", draft.filteredHardness, { draft = draft.copy(filteredHardness = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, placeholder = "optional", error = errors[EquipmentDraft.Field.FILTERED])
+                        FormField("Leitung (°dH)", draft.waterHardness, { draft = draft.copy(waterHardness = it) }, cell, KeyboardType.Decimal, placeholder = "optional", error = errors[EquipmentDraft.Field.WATER])
+                        FormField("Nach Filter (°dH)", draft.filteredHardness, { draft = draft.copy(filteredHardness = it) }, cell, KeyboardType.Decimal, placeholder = "optional", error = errors[EquipmentDraft.Field.FILTERED])
                     }
                 }
             }
@@ -99,13 +99,13 @@ fun EquipmentScreen(vm: DropsViewModel, nav: NavController, kind: EquipmentKind)
             FormSection("Mahlskala") {
                 FormCard {
                     FieldRow {
-                        FormField("Von", draft.scaleMin, { draft = draft.copy(scaleMin = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal)
-                        FormField("Bis", draft.scaleMax, { draft = draft.copy(scaleMax = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal)
-                        FormField("Schritt", draft.scaleStep, { draft = draft.copy(scaleStep = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal)
+                        FormField("Von", draft.scaleMin, { draft = draft.copy(scaleMin = it) }, cell, KeyboardType.Decimal)
+                        FormField("Bis", draft.scaleMax, { draft = draft.copy(scaleMax = it) }, cell, KeyboardType.Decimal)
+                        FormField("Schritt", draft.scaleStep, { draft = draft.copy(scaleStep = it) }, cell, KeyboardType.Decimal)
                     }
                     FieldRow {
-                        FormField("Espresso ab", draft.espressoFrom, { draft = draft.copy(espressoFrom = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal)
-                        FormField("Espresso bis", draft.espressoTo, { draft = draft.copy(espressoTo = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal)
+                        FormField("Espresso ab", draft.espressoFrom, { draft = draft.copy(espressoFrom = it) }, cell, KeyboardType.Decimal)
+                        FormField("Espresso bis", draft.espressoTo, { draft = draft.copy(espressoTo = it) }, cell, KeyboardType.Decimal)
                     }
                 }
                 errors[EquipmentDraft.Field.SCALE]?.let { Text(it, style = DropsType.small, color = c.bad) }

@@ -86,26 +86,26 @@ fun RecipeScreen(vm: DropsViewModel, nav: NavController, beanId: String, recipeI
             FormCard {
                 FieldRow {
                     FormField(
-                        scale?.label?.takeIf { it == "Klicks" } ?: "Mahlgrad", draft.grind, { draft = draft.copy(grind = it) }, Modifier.weight(1f).fillMaxHeight(),
+                        scale?.label?.takeIf { it == "Klicks" } ?: "Mahlgrad", draft.grind, { draft = draft.copy(grind = it) }, cell,
                         KeyboardType.Decimal, placeholder = "noch offen", error = errors[Field.GRIND],
                     )
-                    FormField("Drehzahl (U/min)", draft.rpm, { draft = draft.copy(rpm = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, placeholder = "optional", error = errors[Field.RPM])
+                    FormField("Drehzahl (U/min)", draft.rpm, { draft = draft.copy(rpm = it) }, cell, KeyboardType.Number, placeholder = "optional", error = errors[Field.RPM])
                 }
             }
         }
         FormSection("Brühen") {
             FormCard {
                 FieldRow {
-                    FormField("Dosis (g)", draft.dose, { draft = draft.copy(dose = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, error = errors[Field.DOSE])
-                    FormField("Ertrag (g)", draft.yield, { draft = draft.copy(yield = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, error = errors[Field.YIELD])
+                    FormField("Dosis (g)", draft.dose, { draft = draft.copy(dose = it) }, cell, KeyboardType.Decimal, error = errors[Field.DOSE])
+                    FormField("Ertrag (g)", draft.yield, { draft = draft.copy(yield = it) }, cell, KeyboardType.Decimal, error = errors[Field.YIELD])
                 }
                 FieldRow {
-                    FormField("Zeit ab (s)", draft.timeMin, { draft = draft.copy(timeMin = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, error = errors[Field.TIME])
-                    FormField("Zeit bis (s)", draft.timeMax, { draft = draft.copy(timeMax = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number)
+                    FormField("Zeit ab (s)", draft.timeMin, { draft = draft.copy(timeMin = it) }, cell, KeyboardType.Number, error = errors[Field.TIME])
+                    FormField("Zeit bis (s)", draft.timeMax, { draft = draft.copy(timeMax = it) }, cell, KeyboardType.Number)
                 }
                 FieldRow {
-                    FormField("Temperatur (°C)", draft.temperature, { draft = draft.copy(temperature = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, error = errors[Field.TEMPERATURE])
-                    FormField("Vorbrühen", draft.preinfusion, { draft = draft.copy(preinfusion = it) }, Modifier.weight(1f).fillMaxHeight(), placeholder = "z. B. 5 s")
+                    FormField("Temperatur (°C)", draft.temperature, { draft = draft.copy(temperature = it) }, cell, KeyboardType.Number, error = errors[Field.TEMPERATURE])
+                    FormField("Vorbrühen", draft.preinfusion, { draft = draft.copy(preinfusion = it) }, cell, placeholder = "z. B. 5 s")
                 }
                 FormField("Notizen", draft.notes, { draft = draft.copy(notes = it) }, placeholder = "Sieb, Puck-Screen, WDT …", singleLine = false)
             }

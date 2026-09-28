@@ -83,19 +83,20 @@ private fun BeanForm(vm: DropsViewModel, nav: NavController, base: de.birneklub.
             TextAction("Abbrechen", { nav.popBackStack() })
         }
         ScreenTitle(if (base == null) "Neue Bohne" else "Bohne bearbeiten")
+        Text("Nur der Name ist Pflicht, alles andere ist optional.", style = DropsType.small, color = c.muted)
 
         FormCard {
             FormField("Name", draft.name, { draft = draft.copy(name = it) }, error = errors[Field.NAME])
-            FormField("Rösterei (optional)", draft.roaster, { draft = draft.copy(roaster = it) })
+            FormField("Rösterei", draft.roaster, { draft = draft.copy(roaster = it) })
             DateField("Röstdatum", draft.roastDate, { draft = draft.copy(roastDate = it) })
             FieldRow {
-                FormField("Menge (g)", draft.weight, { draft = draft.copy(weight = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, error = errors[Field.WEIGHT])
+                FormField("Menge (g)", draft.weight, { draft = draft.copy(weight = it) }, cell, KeyboardType.Number, error = errors[Field.WEIGHT])
                 FormField(
-                    "Noch übrig (g)", draft.remaining, { draft = draft.copy(remaining = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal,
+                    "Übrig (g)", draft.remaining, { draft = draft.copy(remaining = it) }, cell, KeyboardType.Decimal,
                     placeholder = "volle Tüte", error = errors[Field.REMAINING],
                 )
             }
-            FormField("Aromen (optional)", draft.notes, { draft = draft.copy(notes = it) }, placeholder = "mit Komma, z. B. Beere, Kakao")
+            FormField("Aromen", draft.notes, { draft = draft.copy(notes = it) }, placeholder = "z. B. Beere, Kakao", singleLine = false)
         }
 
         FormSection("Herkunft") {
@@ -105,10 +106,10 @@ private fun BeanForm(vm: DropsViewModel, nav: NavController, base: de.birneklub.
             }
             ChoiceRow("Röstgrad", options(RoastLevels, draft.roastLevel), draft.roastLevel.ifBlank { UNKNOWN }) { draft = draft.copy(roastLevel = if (it == UNKNOWN) "" else it) }
             FormCard {
-                if (draft.country.isNotBlank()) FormField("Region (optional)", draft.region, { draft = draft.copy(region = it) }, placeholder = "z. B. Yirgacheffe")
+                if (draft.country.isNotBlank()) FormField("Region", draft.region, { draft = draft.copy(region = it) }, placeholder = "z. B. Yirgacheffe")
                 FieldRow {
-                    FormField("Varietät", draft.variety, { draft = draft.copy(variety = it) }, Modifier.weight(1f).fillMaxHeight(), placeholder = "z. B. Bourbon")
-                    FormField("Anbauhöhe", draft.altitude, { draft = draft.copy(altitude = it) }, Modifier.weight(1f).fillMaxHeight(), placeholder = "z. B. 1.900 m")
+                    FormField("Varietät", draft.variety, { draft = draft.copy(variety = it) }, cell, placeholder = "z. B. Bourbon")
+                    FormField("Anbauhöhe", draft.altitude, { draft = draft.copy(altitude = it) }, cell, placeholder = "z. B. 1.900 m")
                 }
             }
         }
@@ -122,11 +123,11 @@ private fun BeanForm(vm: DropsViewModel, nav: NavController, base: de.birneklub.
                 ChoiceRow("Wo gekauft", options(Cities.keys.toList(), draft.city), draft.city.ifBlank { UNKNOWN }) { draft = draft.copy(city = if (it == UNKNOWN) "" else it) }
             }
             FormCard {
-                FormField("Shop (optional)", draft.shop, { draft = draft.copy(shop = it) }, placeholder = draft.roaster.ifBlank { "wie Rösterei" })
+                FormField("Shop", draft.shop, { draft = draft.copy(shop = it) }, placeholder = draft.roaster.ifBlank { "wie Rösterei" })
                 DateField("Gekauft am", draft.purchasedOn, { draft = draft.copy(purchasedOn = it) })
                 FieldRow {
-                    FormField("Preis (€)", draft.price, { draft = draft.copy(price = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, placeholder = "optional", error = errors[Field.PRICE])
-                    FormField("Shop-Link", draft.url, { draft = draft.copy(url = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Uri, placeholder = "zum Nachkaufen", error = errors[Field.URL])
+                    FormField("Preis (€)", draft.price, { draft = draft.copy(price = it) }, cell, KeyboardType.Decimal, error = errors[Field.PRICE])
+                    FormField("Shop-Link", draft.url, { draft = draft.copy(url = it) }, cell, KeyboardType.Uri, placeholder = "zum Nachkaufen", error = errors[Field.URL])
                 }
             }
         }
@@ -146,7 +147,6 @@ private fun BeanForm(vm: DropsViewModel, nav: NavController, base: de.birneklub.
                 }
             }
         }, Modifier.fillMaxWidth(), kind = ButtonKind.Ink, height = 56.dp)
-        if (base == null) Text("Nur der Name ist Pflicht. Alles andere kannst du später ergänzen.", style = DropsType.small, color = c.muted)
     }
 }
 
