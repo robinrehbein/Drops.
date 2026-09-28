@@ -1,59 +1,41 @@
 package de.birneklub.drop.android.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import de.birneklub.drop.android.ui.ButtonKind
-import de.birneklub.drop.android.ui.Chip
+import de.birneklub.drop.android.ui.ChoiceRow
+import de.birneklub.drop.android.ui.DateField
 import de.birneklub.drop.android.ui.Drops
 import de.birneklub.drop.android.ui.DropsType
 import de.birneklub.drop.android.ui.DropsViewModel
-import de.birneklub.drop.android.ui.Eyebrow
+import de.birneklub.drop.android.ui.FieldRow
+import de.birneklub.drop.android.ui.FormCard
+import de.birneklub.drop.android.ui.FormField
+import de.birneklub.drop.android.ui.FormSection
 import de.birneklub.drop.android.ui.PillButton
 import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.TextAction
-import de.birneklub.drop.android.ui.a11y
-import de.birneklub.drop.core.model.Bean
+import de.birneklub.drop.core.catalog.Countries
+import de.birneklub.drop.core.domain.BeanDraft
+import de.birneklub.drop.core.domain.BeanDraft.Field
 import de.birneklub.drop.core.model.GeoPoint
 import de.birneklub.drop.core.model.Process
-import de.birneklub.drop.core.model.Purchase
 import de.birneklub.drop.core.model.PurchaseChannel
-import kotlinx.datetime.LocalDate
-
-/** Approximate coordinates for pins on the map; exact farm locations are rarely known. */
-val CoffeeCountries = linkedMapOf(
-    "Äthiopien" to GeoPoint(7.0, 38.7), "Kenia" to GeoPoint(-0.4, 37.0), "Ruanda" to GeoPoint(-2.3, 29.5), "Burundi" to GeoPoint(-3.0, 29.9),
-    "Kolumbien" to GeoPoint(2.0, -75.5), "Brasilien" to GeoPoint(-19.0, -46.5), "Guatemala" to GeoPoint(15.0, -91.0), "Costa Rica" to GeoPoint(9.7, -84.0),
-    "Honduras" to GeoPoint(14.5, -88.0), "El Salvador" to GeoPoint(13.8, -89.0), "Panama" to GeoPoint(8.8, -82.4), "Peru" to GeoPoint(-6.0, -78.0),
-    "Mexiko" to GeoPoint(16.5, -92.5), "Indonesien" to GeoPoint(3.5, 98.5), "Jemen" to GeoPoint(15.3, 44.0), "Indien" to GeoPoint(12.5, 75.5),
-)
+import de.birneklub.drop.core.sync.DropsJson
 
 val Cities = linkedMapOf(
     "Hamburg" to GeoPoint(53.55, 9.99), "Berlin" to GeoPoint(52.52, 13.40), "Leipzig" to GeoPoint(51.34, 12.37), "München" to GeoPoint(48.14, 11.58),
@@ -64,143 +46,117 @@ val Cities = linkedMapOf(
 /** Chip label for "not on the bag / don't remember"; every choice on this screen may stay unknown. */
 private const val UNKNOWN = "Weiß nicht"
 
+private val RoastLevels = listOf("Hell", "Hell-mittel", "Mittel", "Mittel-dunkel", "Dunkel")
+private val Processes = listOf(Process.WASHED, Process.NATURAL, Process.HONEY, Process.ANAEROBIC)
+private val Channels = listOf(PurchaseChannel.IN_STORE, PurchaseChannel.ONLINE, PurchaseChannel.TRAVEL)
+
+private val DraftSaver = Saver<BeanDraft, String>(
+    save = { DropsJson.encodeToString(BeanDraft.serializer(), it) },
+    restore = { DropsJson.decodeFromString(BeanDraft.serializer(), it) },
+)
+
+/** Options for a chip row: unknown first, then the list, plus a value typed or imported elsewhere. */
+private fun options(list: List<String>, current: String) = listOf(UNKNOWN) + list + listOfNotNull(current.takeIf { it.isNotBlank() && it !in list })
+
+/** "Neue Bohne" when [beanId] is null, else "Bohne bearbeiten" with the same form. */
 @Composable
-fun AddBeanScreen(vm: DropsViewModel, nav: NavController) {
+fun AddBeanScreen(vm: DropsViewModel, nav: NavController, beanId: String? = null) {
+    val lib by vm.library.collectAsStateWithLifecycle()
+    val base = beanId?.let { lib.bean(it) }
+    when {
+        beanId == null -> BeanForm(vm, nav, null)
+        base != null -> BeanForm(vm, nav, base)
+        lib.loaded -> MissingBean(nav)
+    }
+}
+
+@Composable
+private fun BeanForm(vm: DropsViewModel, nav: NavController, base: de.birneklub.drop.core.model.Bean?) {
     val c = Drops.colors
-    var name by rememberSaveable { mutableStateOf("") }
-    var roaster by rememberSaveable { mutableStateOf("") }
-    var country by rememberSaveable { mutableStateOf(UNKNOWN) }
-    var region by rememberSaveable { mutableStateOf("") }
-    var roastDate by rememberSaveable { mutableStateOf("") }
-    var weight by rememberSaveable { mutableStateOf("250") }
-    var price by rememberSaveable { mutableStateOf("") }
-    var notes by rememberSaveable { mutableStateOf("") }
-    var shopUrl by rememberSaveable { mutableStateOf("") }
-    var process by rememberSaveable { mutableStateOf(UNKNOWN) }
-    var channel by rememberSaveable { mutableStateOf(UNKNOWN) }
-    var city by rememberSaveable { mutableStateOf(UNKNOWN) }
-    var error by rememberSaveable { mutableStateOf<String?>(null) }
+    var draft by rememberSaveable(stateSaver = DraftSaver) { mutableStateOf(base?.let(BeanDraft::of) ?: BeanDraft()) }
+    var tried by rememberSaveable { mutableStateOf(false) }
+    // Errors show after the first save attempt and disappear as soon as a field is fixed.
+    val errors = if (tried) draft.errors() else emptyMap()
 
     ScreenColumn {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextAction("Abbrechen", { nav.popBackStack() })
         }
-        ScreenTitle("Neue Bohne")
+        ScreenTitle(if (base == null) "Neue Bohne" else "Bohne bearbeiten")
 
         FormCard {
-            FormField("Name", name, { name = it })
-            FormField("Rösterei (optional)", roaster, { roaster = it })
+            FormField("Name", draft.name, { draft = draft.copy(name = it) }, error = errors[Field.NAME])
+            FormField("Rösterei (optional)", draft.roaster, { draft = draft.copy(roaster = it) })
+            DateField("Röstdatum", draft.roastDate, { draft = draft.copy(roastDate = it) })
             FieldRow {
-                FormField("Röstdatum", roastDate, { roastDate = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, placeholder = "JJJJ-MM-TT")
-                FormField("Menge (g)", weight, { weight = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number)
+                FormField("Menge (g)", draft.weight, { draft = draft.copy(weight = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, error = errors[Field.WEIGHT])
+                FormField(
+                    "Noch übrig (g)", draft.remaining, { draft = draft.copy(remaining = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal,
+                    placeholder = "volle Tüte", error = errors[Field.REMAINING],
+                )
             }
-            FormField("Aromen (optional)", notes, { notes = it }, placeholder = "mit Komma, z. B. Beere, Kakao")
+            FormField("Aromen (optional)", draft.notes, { draft = draft.copy(notes = it) }, placeholder = "mit Komma, z. B. Beere, Kakao")
         }
 
-        Section("Herkunft") {
-            ChoiceRow("Land", listOf(UNKNOWN) + CoffeeCountries.keys, country) { country = it }
-            ChoiceRow("Aufbereitung", listOf(UNKNOWN, "Washed", "Natural", "Honey", "Anaerob"), process) { process = it }
-            if (country != UNKNOWN) FormCard { FormField("Region (optional)", region, { region = it }, placeholder = "z. B. Yirgacheffe") }
-        }
-
-        Section("Kauf") {
-            ChoiceRow("Wie gekauft", listOf(UNKNOWN, "vor Ort", "online", "auf Reisen"), channel) { channel = it }
-            // A city only makes sense for a shop you walked into; online orders have no place on the map.
-            if (channel != "online") ChoiceRow("Wo gekauft", listOf(UNKNOWN) + Cities.keys, city) { city = it }
+        FormSection("Herkunft") {
+            ChoiceRow("Land", options(Countries.names, draft.country), draft.country.ifBlank { UNKNOWN }) { draft = draft.copy(country = if (it == UNKNOWN) "" else it) }
+            ChoiceRow("Aufbereitung", listOf(UNKNOWN) + Processes.map(::processLabel), draft.process?.let(::processLabel) ?: UNKNOWN) { label ->
+                draft = draft.copy(process = Processes.firstOrNull { processLabel(it) == label })
+            }
+            ChoiceRow("Röstgrad", options(RoastLevels, draft.roastLevel), draft.roastLevel.ifBlank { UNKNOWN }) { draft = draft.copy(roastLevel = if (it == UNKNOWN) "" else it) }
             FormCard {
+                if (draft.country.isNotBlank()) FormField("Region (optional)", draft.region, { draft = draft.copy(region = it) }, placeholder = "z. B. Yirgacheffe")
                 FieldRow {
-                    FormField("Preis (€)", price, { price = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, placeholder = "optional")
-                    FormField("Shop-Link", shopUrl, { shopUrl = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Uri, placeholder = "zum Nachkaufen")
+                    FormField("Varietät", draft.variety, { draft = draft.copy(variety = it) }, Modifier.weight(1f).fillMaxHeight(), placeholder = "z. B. Bourbon")
+                    FormField("Anbauhöhe", draft.altitude, { draft = draft.copy(altitude = it) }, Modifier.weight(1f).fillMaxHeight(), placeholder = "z. B. 1.900 m")
                 }
             }
         }
 
-        error?.let { Text(it, style = DropsType.small, color = c.bad) }
-        PillButton("Speichern", {
-            val date = roastDate.takeIf { it.isNotBlank() }?.let { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
-            when {
-                name.isBlank() -> error = "Bitte einen Namen eintragen."
-                roastDate.isNotBlank() && date == null -> error = "Röstdatum bitte als JJJJ-MM-TT eingeben, z. B. 2026-09-22."
-                else -> {
-                    val grams = weight.toIntOrNull() ?: 250
-                    val knownCountry = country.takeIf { it != UNKNOWN }
-                    val knownCity = city.takeIf { it != UNKNOWN && channel != "online" }
-                    val priceCents = price.replace(',', '.').toDoubleOrNull()?.let { (it * 100).toInt() }
-                    val url = shopUrl.trim().takeIf { it.startsWith("https://") || it.startsWith("http://") }
-                    val purchaseChannel = when (channel) { "online" -> PurchaseChannel.ONLINE; "auf Reisen" -> PurchaseChannel.TRAVEL; UNKNOWN -> null; else -> PurchaseChannel.IN_STORE }
-                    val purchase = if (purchaseChannel == null && knownCity == null && priceCents == null && url == null) null else Purchase(
-                        roaster.trim().ifBlank { "Rösterei" }, knownCity.orEmpty(), knownCity?.let { Cities[it] },
-                        purchaseChannel ?: PurchaseChannel.IN_STORE, priceCents, url = url,
-                    )
-                    val bean = Bean(
-                        id = vm.newId(), name = name.trim(), roaster = roaster.trim(), country = knownCountry.orEmpty(),
-                        region = if (knownCountry == null) "" else region.trim(), origin = knownCountry?.let { CoffeeCountries[it] },
-                        process = when (process) { "Washed" -> Process.WASHED; "Natural" -> Process.NATURAL; "Honey" -> Process.HONEY; "Anaerob" -> Process.ANAEROBIC; else -> Process.OTHER },
-                        roastDate = date, weightGrams = grams, remainingGrams = grams.toDouble(),
-                        tastingNotes = notes.split(',').map { it.trim() }.filter { it.isNotEmpty() },
-                        purchase = purchase,
-                        updatedAt = vm.now(),
-                    )
+        FormSection("Kauf") {
+            ChoiceRow("Wie gekauft", listOf(UNKNOWN) + Channels.map(::channelLabel), draft.channel?.let(::channelLabel) ?: UNKNOWN) { label ->
+                draft = draft.copy(channel = Channels.firstOrNull { channelLabel(it) == label })
+            }
+            // A city only makes sense for a shop you walked into; online orders have no place on the map.
+            if (draft.channel != PurchaseChannel.ONLINE) {
+                ChoiceRow("Wo gekauft", options(Cities.keys.toList(), draft.city), draft.city.ifBlank { UNKNOWN }) { draft = draft.copy(city = if (it == UNKNOWN) "" else it) }
+            }
+            FormCard {
+                FormField("Shop (optional)", draft.shop, { draft = draft.copy(shop = it) }, placeholder = draft.roaster.ifBlank { "wie Rösterei" })
+                DateField("Gekauft am", draft.purchasedOn, { draft = draft.copy(purchasedOn = it) })
+                FieldRow {
+                    FormField("Preis (€)", draft.price, { draft = draft.copy(price = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, placeholder = "optional", error = errors[Field.PRICE])
+                    FormField("Shop-Link", draft.url, { draft = draft.copy(url = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Uri, placeholder = "zum Nachkaufen", error = errors[Field.URL])
+                }
+            }
+        }
+
+        if (errors.isNotEmpty()) Text("Bitte die markierten Felder prüfen.", style = DropsType.small, color = c.bad)
+        PillButton(if (base == null) "Speichern" else "Änderungen speichern", {
+            tried = true
+            if (draft.errors().isEmpty()) {
+                val bean = draft.toBean(base?.id ?: vm.newId(), base, vm.now()) { Cities[it] }
+                if (base == null) {
                     vm.addBean(bean)
                     nav.popBackStack()
                     nav.navigate(Routes.bean(bean.id))
+                } else {
+                    vm.saveBean(bean, "Änderungen gespeichert")
+                    nav.popBackStack()
                 }
             }
         }, Modifier.fillMaxWidth(), kind = ButtonKind.Ink, height = 56.dp)
-        Text("Nur der Name ist Pflicht. Alles andere kannst du später auf der Bohne ergänzen.", style = DropsType.small, color = c.muted)
+        if (base == null) Text("Nur der Name ist Pflicht. Alles andere kannst du später ergänzen.", style = DropsType.small, color = c.muted)
     }
 }
 
+/** Shown when a link points to a bean that no longer exists (deleted, or removed on another device). */
 @Composable
-private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Eyebrow(title)
-        content()
-    }
-}
-
-@Composable
-private fun FormCard(content: @Composable ColumnScope.() -> Unit) {
-    val c = Drops.colors
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).border(1.dp, c.line, RoundedCornerShape(18.dp)).background(c.line),
-        verticalArrangement = Arrangement.spacedBy(1.dp), content = content,
-    )
-}
-
-/** Side-by-side fields share one height, so the divider background never shows below the shorter cell. */
-@Composable
-private fun FieldRow(content: @Composable RowScope.() -> Unit) {
-    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(1.dp), content = content)
-}
-
-@Composable
-private fun FormField(
-    label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier.fillMaxWidth(),
-    type: KeyboardType = KeyboardType.Text, placeholder: String? = null,
-) {
-    val c = Drops.colors
-    Column(modifier.background(c.surface).padding(horizontal = 14.dp, vertical = 10.dp)) {
-        Text(label, style = DropsType.caption, color = c.muted)
-        BasicTextField(
-            value, onChange, singleLine = true, textStyle = DropsType.body.copy(color = c.ink), cursorBrush = SolidColor(c.accent),
-            keyboardOptions = KeyboardOptions(keyboardType = type), modifier = Modifier.fillMaxWidth().padding(top = 2.dp).a11y(label),
-            decorationBox = { field ->
-                Box {
-                    if (value.isEmpty() && placeholder != null) Text(placeholder, style = DropsType.body, color = c.muted.copy(alpha = 0.6f), maxLines = 1)
-                    field()
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun ChoiceRow(label: String, options: List<String>, selected: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, style = DropsType.small, color = Drops.colors.muted)
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            options.forEach { Chip(it, it == selected) { onSelect(it) } }
-        }
+fun MissingBean(nav: NavController) {
+    ScreenColumn {
+        TextAction("‹ Zurück", { if (!nav.popBackStack()) nav.navigate(Routes.BEANS) })
+        ScreenTitle("Bohne nicht gefunden")
+        Text("Diese Bohne gibt es nicht mehr. Vielleicht wurde sie gelöscht oder auf einem anderen Gerät entfernt.", style = DropsType.body, color = Drops.colors.muted)
+        PillButton("Zu den Bohnen", { nav.navigate(Routes.BEANS) { popUpTo(Routes.BEANS) { inclusive = true } } }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
     }
 }

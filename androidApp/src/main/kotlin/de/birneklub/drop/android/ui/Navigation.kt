@@ -61,12 +61,14 @@ object Routes {
     const val BEAN = "bean/{id}"
     const val SHOT = "shot/{beanId}"
     const val ADD_BEAN = "add-bean"
+    const val EDIT_BEAN = "bean/{id}/edit"
     const val ACCOUNT = "account"
     const val ONBOARDING = "onboarding"
     const val EQUIPMENT = "equipment/{kind}"
     const val ROASTER_CARD = "card/{payload}"
 
     fun bean(id: String) = "bean/$id"
+    fun editBean(id: String) = "bean/$id/edit"
     fun shot(beanId: String) = "shot/$beanId"
     fun equipment(kind: EquipmentKind) = "equipment/${kind.name}"
 }
@@ -129,6 +131,7 @@ fun DropsRoot(container: AppContainer, deepLink: MutableStateFlow<String?> = Mut
             composable(Routes.BEAN) { BeanDetailScreen(vm, nav, it.arguments?.getString("id").orEmpty()) }
             composable(Routes.SHOT) { ShotScreen(vm, nav, it.arguments?.getString("beanId").orEmpty()) }
             composable(Routes.ADD_BEAN) { AddBeanScreen(vm, nav) }
+            composable(Routes.EDIT_BEAN) { AddBeanScreen(vm, nav, it.arguments?.getString("id").orEmpty()) }
             composable(Routes.ACCOUNT) { AccountScreen(vm, nav) }
             composable(Routes.ONBOARDING) { OnboardingScreen(vm, nav) }
             composable(Routes.ROASTER_CARD) { RoasterCardScreen(vm, nav, it.arguments?.getString("payload").orEmpty()) }

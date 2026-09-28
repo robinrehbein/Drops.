@@ -3,6 +3,9 @@ package de.birneklub.drop.android
 import android.app.Application
 import android.os.Build
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.datetime.Clock
 import de.birneklub.drop.data.BetaStats
 import de.birneklub.drop.data.DropsRepository
@@ -11,16 +14,22 @@ import de.birneklub.drop.data.createDatabase
 import de.birneklub.drop.data.defaultHttpEngine
 
 /** Manual dependency container; small enough that a DI framework would only add weight. */
-class AppContainer(val app: Application, clock: Clock = Clock.System) {
+class AppContainer(
+    val app: Application,
+    clock: Clock = Clock.System,
+    /** Tests pass a dispatcher that runs on the calling thread, so screens load deterministically. */
+    io: CoroutineDispatcher = Dispatchers.IO,
+) {
     private val database = createDatabase(app)
-    val repository = DropsRepository(database, clock)
+    val repository = DropsRepository(database, clock, io)
     val sync = SyncClient(
         db = database,
         engine = defaultHttpEngine(),
         deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim(),
         platform = "android",
+        io = io,
     )
-    val stats = BetaStats(database, defaultHttpEngine(), platform = "android", appVersion = BuildConfig.VERSION_NAME)
+    val stats = BetaStats(database, defaultHttpEngine(), platform = "android", appVersion = BuildConfig.VERSION_NAME, io = io)
 
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
     val founding = FoundingMember(app, scope, ::verifyPurchase) {

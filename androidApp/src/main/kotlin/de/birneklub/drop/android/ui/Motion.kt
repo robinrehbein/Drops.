@@ -124,7 +124,7 @@ fun routeDepth(route: String?): Int = when (route) {
     null -> 0
     Routes.TODAY, Routes.BEANS, Routes.MAP, Routes.SETUP, Routes.ONBOARDING -> 0
     Routes.BEAN, Routes.ADD_BEAN, Routes.ACCOUNT, Routes.EQUIPMENT, Routes.ROASTER_CARD -> 1
-    Routes.SHOT -> 2
+    Routes.SHOT, Routes.EDIT_BEAN -> 2
     else -> 1
 }
 

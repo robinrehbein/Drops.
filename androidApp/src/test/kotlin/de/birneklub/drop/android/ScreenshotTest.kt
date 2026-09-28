@@ -29,6 +29,7 @@ import de.birneklub.drop.android.ui.screens.TodayScreen
 import de.birneklub.drop.core.model.EquipmentKind
 import de.birneklub.drop.core.model.Process
 import de.birneklub.drop.core.roaster.RoasterCard
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -72,7 +73,7 @@ class ScreenshotTest(private val variant: Variant) {
     private fun shoot(name: String, content: @Composable (DropsViewModel) -> Unit) {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"))
         val app = ApplicationProvider.getApplicationContext<TestApp>()
-        val container = AppContainer(app, object : Clock { override fun now() = fixedNow })
+        val container = AppContainer(app, object : Clock { override fun now() = fixedNow }, Dispatchers.Unconfined)
         if (variant.data) runBlocking { container.repository.seedIfEmpty(); container.repository.markSetupDone() }
         val vm = DropsViewModel(container)
         compose.setContent {
@@ -95,6 +96,7 @@ class ScreenshotTest(private val variant: Variant) {
     @Test fun beans() = shoot("04_beans") { BeansScreen(it, rememberNavController()) }
     @Test fun beanDetail() = shoot("05_bean_detail") { BeanDetailScreen(it, rememberNavController(), "sample-guji") }
     @Test fun addBean() = shoot("06_add_bean") { AddBeanScreen(it, rememberNavController()) }
+    @Test fun editBean() = shoot("06b_edit_bean") { AddBeanScreen(it, rememberNavController(), "sample-guji") }
     @Test fun shot() = shoot("07_shot") { ShotScreen(it, rememberNavController(), "sample-guji") }
     @Test fun map() = shoot("08_map") { MapScreen(it) }
     @Test fun discover() = shoot("09_discover") { MapScreen(it, MapMode.DISCOVER) }
