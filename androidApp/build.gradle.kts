@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.roborazzi)
 }
 
 // CI passes the run number and tag; local builds use 1 / 0.1.0-dev.
@@ -66,6 +67,11 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        // Screenshot tests render every screen on the JVM (Robolectric native graphics).
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { it.systemProperty("robolectric.graphicsMode", "NATIVE") }
+    }
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/INDEX.LIST", "/META-INF/io.netty.versions.properties")
     }
@@ -91,4 +97,18 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+}
+
+roborazzi {
+    outputDir.set(layout.buildDirectory.dir("outputs/roborazzi"))
 }
