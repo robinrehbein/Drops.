@@ -1,5 +1,9 @@
 package de.birneklub.drop.android.ui
 
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,10 +56,21 @@ fun FormCard(content: @Composable ColumnScope.() -> Unit) {
     )
 }
 
-/** Side-by-side fields share one height, so the divider background never shows below the shorter cell. */
+/** Gives each field in a [FieldRow] the modifier that fits the current layout. */
+class FieldRowScope(val cell: Modifier)
+
+/**
+ * Side-by-side fields share one height, so the divider background never shows
+ * below the shorter cell. With large text they stack, one field per line.
+ * Fields pass [FieldRowScope.cell] as their modifier.
+ */
 @Composable
-fun FieldRow(content: @Composable RowScope.() -> Unit) {
-    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(1.dp), content = content)
+fun FieldRow(content: @Composable FieldRowScope.() -> Unit) {
+    if (rememberLargeFont()) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) { FieldRowScope(Modifier.fillMaxWidth()).content() }
+    } else {
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(1.dp)) { FieldRowScope(Modifier.weight(1f).fillMaxHeight()).content() }
+    }
 }
 
 /**
@@ -82,7 +97,7 @@ fun FormField(
             modifier = Modifier.fillMaxWidth().padding(top = Space.xxs).a11y(label).then(if (error != null) Modifier.semantics { error(error) } else Modifier),
             decorationBox = { field ->
                 Box {
-                    if (value.isEmpty() && placeholder != null) Text(placeholder, style = DropsType.body, color = c.muted, maxLines = 1)
+                    if (value.isEmpty() && placeholder != null) Text(placeholder, style = DropsType.body, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     field()
                 }
             },

@@ -85,12 +85,12 @@ Datei: `BeanDetailScreen.kt` · Screenshot: `05_bean_detail`
 
 Datei: `AddBeanScreen.kt` · Screenshot: `06_add_bean`
 
-- [ ] Zahlen
-- [ ] Sprache
-- [ ] Layout
-- [ ] Design
-- [ ] Barrierefreiheit
-- [ ] Zustände
+- [x] Zahlen
+- [x] Sprache
+- [x] Layout
+- [x] Design
+- [x] Barrierefreiheit
+- [x] Zustände
 
 ### Shot
 

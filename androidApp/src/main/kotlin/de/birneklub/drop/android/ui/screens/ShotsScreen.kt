@@ -159,12 +159,12 @@ fun ShotEditScreen(vm: DropsViewModel, nav: NavController, shotId: String) {
         }
         FormCard {
             FieldRow {
-                FormField("Dosis (g)", draft.dose, { draft = draft.copy(dose = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, error = errors[Field.DOSE])
-                FormField("Ertrag (g)", draft.yield, { draft = draft.copy(yield = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, error = errors[Field.YIELD])
+                FormField("Dosis (g)", draft.dose, { draft = draft.copy(dose = it) }, cell, KeyboardType.Decimal, error = errors[Field.DOSE])
+                FormField("Ertrag (g)", draft.yield, { draft = draft.copy(yield = it) }, cell, KeyboardType.Decimal, error = errors[Field.YIELD])
             }
             FieldRow {
-                FormField("Zeit (s)", draft.time, { draft = draft.copy(time = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, error = errors[Field.TIME])
-                FormField("Temperatur (°C)", draft.temperature, { draft = draft.copy(temperature = it) }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, error = errors[Field.TEMPERATURE])
+                FormField("Zeit (s)", draft.time, { draft = draft.copy(time = it) }, cell, KeyboardType.Decimal, error = errors[Field.TIME])
+                FormField("Temperatur (°C)", draft.temperature, { draft = draft.copy(temperature = it) }, cell, KeyboardType.Number, error = errors[Field.TEMPERATURE])
             }
             FormField("Mahlgrad", draft.grind, { draft = draft.copy(grind = it) }, type = KeyboardType.Decimal, error = errors[Field.GRIND])
         }
