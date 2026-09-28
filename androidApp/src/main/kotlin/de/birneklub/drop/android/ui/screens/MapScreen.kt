@@ -1,5 +1,10 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.android.ui.Icon
+import de.birneklub.drop.android.ui.DropsIcons
+import de.birneklub.drop.android.ui.DropsCard
+import de.birneklub.drop.core.format.Format
+import de.birneklub.drop.android.ui.Space
 import de.birneklub.drop.android.ui.Routes
 import androidx.navigation.NavController
 import androidx.compose.foundation.Canvas
@@ -194,13 +199,13 @@ fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = Map
     LaunchedEffect(mode, layer, placeFilter, canvasSize) { fit() }
 
     ScreenColumn(contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp)) {
-        Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.padding(horizontal = Space.xl), verticalArrangement = Arrangement.spacedBy(Space.m)) {
             val roasters = lib.beans.mapNotNull { it.purchase?.shopName }.distinct().size
             ScreenTitle(
                 "Karte",
                 when (mode) {
-                    MapMode.ORIGIN -> "${pins.size} Länder · ${lib.beans.size} Röstungen"
-                    MapMode.BOUGHT -> "${pins.size} Städte · $roasters Röstereien"
+                    MapMode.ORIGIN -> "${pins.size} ${if (pins.size == 1) "Land" else "Länder"} · ${lib.beans.size} ${if (lib.beans.size == 1) "Röstung" else "Röstungen"}"
+                    MapMode.BOUGHT -> "${pins.size} ${if (pins.size == 1) "Stadt" else "Städte"} · $roasters ${if (roasters == 1) "Laden" else "Läden"}"
                     MapMode.DISCOVER -> "Beispielinhalte"
                 },
             )
@@ -282,7 +287,7 @@ fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = Map
             Column(Modifier.align(Alignment.TopEnd).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 MapButton("+", "Hineinzoomen") { scale = (scale * 1.4f).coerceAtMost(300f) }
                 MapButton("−", "Herauszoomen") { scale = (scale / 1.4f).coerceAtLeast(0.6f) }
-                MapButton("⌂", "Alle Pins zeigen") { fit() }
+                MapButton(null, "Alle Orte zeigen", DropsIcons.Fit) { fit() }
             }
             if (mode == MapMode.DISCOVER) {
                 val legend = when (layer) {
@@ -329,7 +334,17 @@ fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = Map
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
         } else {
-            Column(Modifier.padding(horizontal = 10.dp)) {
+            Column(Modifier.padding(horizontal = Space.m)) {
+                if (pins.isEmpty() && lib.loaded) {
+                    DropsCard(Modifier.fillMaxWidth().padding(horizontal = Space.s)) {
+                        Text(if (mode == MapMode.ORIGIN) "Noch keine Herkunft auf der Karte" else "Noch kein Kaufort auf der Karte", style = DropsType.bodyStrong, color = c.ink)
+                        Text(
+                            if (mode == MapMode.ORIGIN) "Wähl bei einer Bohne das Anbauland, dann erscheint sie hier."
+                            else "Wähl bei einer Bohne die Stadt, in der du sie gekauft hast. Online-Käufe haben keinen Ort.",
+                            style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = Space.xs),
+                        )
+                    }
+                }
                 pins.forEach { p ->
                     val on = p == selectedPin
                     Row(
@@ -341,9 +356,11 @@ fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = Map
                         Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(if (on) c.inverse else c.accent))
                         Column(Modifier.weight(1f)) {
                             Text(p.title, style = DropsType.bodyStrong, color = c.ink)
-                            if (!on) Text(p.subtitle, style = DropsType.small, color = c.muted)
+                            Text(
+                                Format.join("${p.weight} ${if (p.weight == 1) "Röstung" else "Röstungen"}", if (on) null else p.subtitle),
+                                style = DropsType.small, color = c.muted,
+                            )
                         }
-                        Text("${p.weight} ${if (p.weight == 1) "Röstung" else "Röstungen"}", style = DropsType.small.copy(fontFamily = MonoFamily), color = c.muted)
                     }
                     // The selected pin lists its beans; each one opens.
                     if (on) p.beans.forEach { b ->
@@ -353,7 +370,7 @@ fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = Map
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(b.name, style = DropsType.body, color = c.accent, modifier = Modifier.weight(1f))
-                            Text("›", style = DropsType.headline, color = c.muted)
+                            Icon(DropsIcons.Chevron, null, tint = c.muted, size = 20.dp)
                         }
                     }
                 }
@@ -363,13 +380,16 @@ fun MapScreen(vm: DropsViewModel, nav: NavController, initialMode: MapMode = Map
 }
 
 @Composable
-private fun MapButton(symbol: String, label: String, onClick: () -> Unit) {
+private fun MapButton(symbol: String?, label: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, onClick: () -> Unit) {
     val c = Drops.colors
     Box(
-        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(12.dp))
+        Modifier.size(Space.touch).clip(RoundedCornerShape(12.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(12.dp))
             .clickable(role = Role.Button, onClick = onClick).a11y(label),
         contentAlignment = Alignment.Center,
-    ) { Text(symbol, style = DropsType.body, color = c.ink) }
+    ) {
+        if (icon != null) Icon(icon, null, tint = c.ink, size = 20.dp)
+        else Text(symbol.orEmpty(), style = DropsType.body.copy(fontSize = 20.sp), color = c.ink)
+    }
 }
 
 fun channelLabel(ch: de.birneklub.drop.core.model.PurchaseChannel) = when (ch) {
