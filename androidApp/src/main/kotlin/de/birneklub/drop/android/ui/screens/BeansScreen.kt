@@ -80,7 +80,7 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
 
     Box(Modifier.fillMaxSize()) {
         ScreenColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 110.dp)) {
-            ScreenTitle("Bohnen", "${lib.beans.size} Röstungen · ${lib.beans.map { it.country }.distinct().size} Länder")
+            ScreenTitle("Bohnen", "${lib.beans.size} Röstungen · ${lib.beans.map { it.country }.filter { it.isNotBlank() }.distinct().size} Länder")
 
             Row(
                 Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(24.dp)).padding(horizontal = 14.dp),
@@ -122,7 +122,7 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
                             IconBox(DropsIcons.Snow, c.ice, c.iceSoft, 36.dp)
                             Column(Modifier.weight(1f)) {
                                 Text(b.name, style = DropsType.bodyStrong, color = c.ink)
-                                Text("${b.country} · ${b.roaster}", style = DropsType.caption, color = c.muted)
+                                Text(listOf(b.country, b.roaster).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.caption, color = c.muted)
                             }
                             Text("${b.frozenDoses} × 18 g", style = DropsType.small.copy(fontFamily = MonoFamily), color = c.ink)
                         }
@@ -136,7 +136,7 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
                         pair.forEach { b ->
                             DropsCard(Modifier.weight(1f), onClick = { nav.navigate(Routes.bean(b.id)) }, padding = PaddingValues(12.dp)) {
                                 Text(b.name, style = DropsType.bodyStrong, color = c.ink)
-                                Text("${b.country} · ${b.roaster}", style = DropsType.caption, color = c.muted)
+                                Text(listOf(b.country, b.roaster).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.caption, color = c.muted)
                                 Text(
                                     (b.rating?.fmt() ?: "–") + if (b.wouldRebuy == true) " · wieder kaufen" else "",
                                     style = DropsType.small.copy(fontFamily = MonoFamily), color = c.accent, modifier = Modifier.padding(top = 4.dp),
@@ -174,7 +174,7 @@ private fun OpenBeanRow(bean: Bean, today: kotlinx.datetime.LocalDate, onClick: 
     DropsCard(Modifier.fillMaxWidth(), onClick = onClick, padding = PaddingValues(14.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(52.dp, 64.dp).clip(RoundedCornerShape(10.dp)).background(bagColor(bean)), contentAlignment = Alignment.BottomCenter) {
-                Text(bean.country.take(3).uppercase(), style = DropsType.eyebrow.copy(fontSize = 10.sp), color = Color(0xFFF6EFE6), modifier = Modifier.padding(bottom = 8.dp))
+                Text(bean.country.ifBlank { "?" }.take(3).uppercase(), style = DropsType.eyebrow.copy(fontSize = 10.sp), color = Color(0xFFF6EFE6), modifier = Modifier.padding(bottom = 8.dp))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

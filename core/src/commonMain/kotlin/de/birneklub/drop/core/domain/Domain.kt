@@ -161,7 +161,7 @@ object Palate {
         val max = raw.values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
         val washed = rated.filter { it.process == Process.WASHED }.map { it.rating!! }
         val other = rated.filter { it.process != Process.WASHED }.map { it.rating!! }
-        val favourite = rated.groupBy { it.country }
+        val favourite = rated.filter { it.country.isNotBlank() }.groupBy { it.country }
             .mapValues { (_, list) -> list.map { it.rating!! }.average() }
             .maxByOrNull { it.value }?.key
         return PalateProfile(

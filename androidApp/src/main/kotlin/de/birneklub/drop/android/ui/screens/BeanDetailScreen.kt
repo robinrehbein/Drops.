@@ -61,6 +61,7 @@ import de.birneklub.drop.android.ui.fmt
 import de.birneklub.drop.core.model.BeanStatus
 import de.birneklub.drop.core.model.Recipe
 import de.birneklub.drop.core.model.Shot
+import de.birneklub.drop.core.model.Process
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -102,7 +103,7 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Eyebrow("${bean.roaster}${bean.purchase?.city?.let { " · $it" } ?: ""}", c.heroAccent)
+                    Eyebrow("${bean.roaster}${bean.purchase?.city?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}", c.heroAccent)
                     Text(bean.name, style = DropsType.display.copy(fontSize = 46.sp, lineHeight = 46.sp), color = c.heroInk)
                     Text(listOf(bean.country, bean.region, bean.altitude).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.body, color = c.heroMuted)
                 }
@@ -118,7 +119,7 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 FactsGrid(
                     listOf(
-                        "Aufbereitung" to processLabel(bean.process), "Varietät" to bean.variety.ifBlank { "–" }, "Röstgrad" to bean.roastLevel.ifBlank { "–" },
+                        "Aufbereitung" to (if (bean.process == Process.OTHER) "–" else processLabel(bean.process)), "Varietät" to bean.variety.ifBlank { "–" }, "Röstgrad" to bean.roastLevel.ifBlank { "–" },
                         "Geröstet" to (bean.roastDate?.let { "%02d.%02d.%02d".format(it.dayOfMonth, it.monthNumber, it.year % 100) } ?: "–"),
                         "Preis" to euros(bean.purchase?.priceCents), "Menge" to "${bean.weightGrams} g",
                     ),
@@ -165,7 +166,7 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                         Segmented(listOf("Ja", "Nein"), when (bean.wouldRebuy) { true -> 0; false -> 1; null -> -1 }, { vm.setRebuy(bean, it == 0) }, Modifier.size(180.dp, 52.dp))
                     }
                     bean.purchase?.let { p ->
-                        Text("Gekauft bei ${p.shopName}, ${p.city}", style = DropsType.small, color = c.muted)
+                        Text("Gekauft bei ${p.shopName}${if (p.city.isNotBlank()) ", ${p.city}" else ""}", style = DropsType.small, color = c.muted)
                     }
                     if (bean.wouldRebuy != false) {
                         val uri = LocalUriHandler.current

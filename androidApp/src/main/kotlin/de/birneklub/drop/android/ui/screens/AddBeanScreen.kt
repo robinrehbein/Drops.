@@ -4,9 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +35,7 @@ import de.birneklub.drop.android.ui.Chip
 import de.birneklub.drop.android.ui.Drops
 import de.birneklub.drop.android.ui.DropsType
 import de.birneklub.drop.android.ui.DropsViewModel
+import de.birneklub.drop.android.ui.Eyebrow
 import de.birneklub.drop.android.ui.PillButton
 import de.birneklub.drop.android.ui.Routes
 import de.birneklub.drop.android.ui.TextAction
@@ -54,21 +61,24 @@ val Cities = linkedMapOf(
     "Wien" to GeoPoint(48.21, 16.37), "Zürich" to GeoPoint(47.37, 8.54),
 )
 
+/** Chip label for "not on the bag / don't remember"; every choice on this screen may stay unknown. */
+private const val UNKNOWN = "Weiß nicht"
+
 @Composable
 fun AddBeanScreen(vm: DropsViewModel, nav: NavController) {
     val c = Drops.colors
     var name by rememberSaveable { mutableStateOf("") }
     var roaster by rememberSaveable { mutableStateOf("") }
-    var country by rememberSaveable { mutableStateOf("Äthiopien") }
+    var country by rememberSaveable { mutableStateOf(UNKNOWN) }
     var region by rememberSaveable { mutableStateOf("") }
     var roastDate by rememberSaveable { mutableStateOf("") }
     var weight by rememberSaveable { mutableStateOf("250") }
     var price by rememberSaveable { mutableStateOf("") }
     var notes by rememberSaveable { mutableStateOf("") }
     var shopUrl by rememberSaveable { mutableStateOf("") }
-    var process by rememberSaveable { mutableStateOf(Process.WASHED) }
-    var city by rememberSaveable { mutableStateOf("Hamburg") }
-    var channel by rememberSaveable { mutableStateOf(PurchaseChannel.IN_STORE) }
+    var process by rememberSaveable { mutableStateOf(UNKNOWN) }
+    var channel by rememberSaveable { mutableStateOf(UNKNOWN) }
+    var city by rememberSaveable { mutableStateOf(UNKNOWN) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
 
     ScreenColumn {
@@ -77,28 +87,32 @@ fun AddBeanScreen(vm: DropsViewModel, nav: NavController) {
         }
         ScreenTitle("Neue Bohne")
 
-        Column(Modifier.clip(RoundedCornerShape(18.dp)).border(1.dp, c.line, RoundedCornerShape(18.dp)).background(c.line), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        FormCard {
             FormField("Name", name, { name = it })
-            FormField("Rösterei", roaster, { roaster = it })
-            FormField("Region", region, { region = it })
-            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                FormField("Röstdatum (JJJJ-MM-TT)", roastDate, { roastDate = it }, Modifier.weight(1f), KeyboardType.Number)
-                FormField("Menge (g)", weight, { weight = it }, Modifier.weight(1f), KeyboardType.Number)
+            FormField("Rösterei (optional)", roaster, { roaster = it })
+            FieldRow {
+                FormField("Röstdatum", roastDate, { roastDate = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number, placeholder = "JJJJ-MM-TT")
+                FormField("Menge (g)", weight, { weight = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Number)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                FormField("Preis (€)", price, { price = it }, Modifier.weight(1f), KeyboardType.Decimal)
-                FormField("Aromen, mit Komma", notes, { notes = it }, Modifier.weight(1f))
-            }
-            FormField("Shop-Link zum Nachkaufen (optional)", shopUrl, { shopUrl = it }, type = KeyboardType.Uri)
+            FormField("Aromen (optional)", notes, { notes = it }, placeholder = "mit Komma, z. B. Beere, Kakao")
         }
 
-        ChoiceRow("Land", CoffeeCountries.keys.toList(), country) { country = it }
-        ChoiceRow("Aufbereitung", listOf("Washed", "Natural", "Honey", "Anaerob"), processLabel(process)) {
-            process = when (it) { "Natural" -> Process.NATURAL; "Honey" -> Process.HONEY; "Anaerob" -> Process.ANAEROBIC; else -> Process.WASHED }
+        Section("Herkunft") {
+            ChoiceRow("Land", listOf(UNKNOWN) + CoffeeCountries.keys, country) { country = it }
+            ChoiceRow("Aufbereitung", listOf(UNKNOWN, "Washed", "Natural", "Honey", "Anaerob"), process) { process = it }
+            if (country != UNKNOWN) FormCard { FormField("Region (optional)", region, { region = it }, placeholder = "z. B. Yirgacheffe") }
         }
-        ChoiceRow("Gekauft in", Cities.keys.toList(), city) { city = it }
-        ChoiceRow("Wie gekauft", listOf("vor Ort", "online", "auf Reisen"), channelLabel(channel)) {
-            channel = when (it) { "online" -> PurchaseChannel.ONLINE; "auf Reisen" -> PurchaseChannel.TRAVEL; else -> PurchaseChannel.IN_STORE }
+
+        Section("Kauf") {
+            ChoiceRow("Wie gekauft", listOf(UNKNOWN, "vor Ort", "online", "auf Reisen"), channel) { channel = it }
+            // A city only makes sense for a shop you walked into; online orders have no place on the map.
+            if (channel != "online") ChoiceRow("Wo gekauft", listOf(UNKNOWN) + Cities.keys, city) { city = it }
+            FormCard {
+                FieldRow {
+                    FormField("Preis (€)", price, { price = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Decimal, placeholder = "optional")
+                    FormField("Shop-Link", shopUrl, { shopUrl = it }, Modifier.weight(1f).fillMaxHeight(), KeyboardType.Uri, placeholder = "zum Nachkaufen")
+                }
+            }
         }
 
         error?.let { Text(it, style = DropsType.small, color = c.bad) }
@@ -109,12 +123,22 @@ fun AddBeanScreen(vm: DropsViewModel, nav: NavController) {
                 roastDate.isNotBlank() && date == null -> error = "Röstdatum bitte als JJJJ-MM-TT eingeben, z. B. 2026-09-22."
                 else -> {
                     val grams = weight.toIntOrNull() ?: 250
+                    val knownCountry = country.takeIf { it != UNKNOWN }
+                    val knownCity = city.takeIf { it != UNKNOWN && channel != "online" }
+                    val priceCents = price.replace(',', '.').toDoubleOrNull()?.let { (it * 100).toInt() }
+                    val url = shopUrl.trim().takeIf { it.startsWith("https://") || it.startsWith("http://") }
+                    val purchaseChannel = when (channel) { "online" -> PurchaseChannel.ONLINE; "auf Reisen" -> PurchaseChannel.TRAVEL; UNKNOWN -> null; else -> PurchaseChannel.IN_STORE }
+                    val purchase = if (purchaseChannel == null && knownCity == null && priceCents == null && url == null) null else Purchase(
+                        roaster.trim().ifBlank { "Rösterei" }, knownCity.orEmpty(), knownCity?.let { Cities[it] },
+                        purchaseChannel ?: PurchaseChannel.IN_STORE, priceCents, url = url,
+                    )
                     val bean = Bean(
-                        id = vm.newId(), name = name.trim(), roaster = roaster.trim(), country = country, region = region.trim(),
-                        origin = CoffeeCountries[country], process = process, roastDate = date, weightGrams = grams, remainingGrams = grams.toDouble(),
+                        id = vm.newId(), name = name.trim(), roaster = roaster.trim(), country = knownCountry.orEmpty(),
+                        region = if (knownCountry == null) "" else region.trim(), origin = knownCountry?.let { CoffeeCountries[it] },
+                        process = when (process) { "Washed" -> Process.WASHED; "Natural" -> Process.NATURAL; "Honey" -> Process.HONEY; "Anaerob" -> Process.ANAEROBIC; else -> Process.OTHER },
+                        roastDate = date, weightGrams = grams, remainingGrams = grams.toDouble(),
                         tastingNotes = notes.split(',').map { it.trim() }.filter { it.isNotEmpty() },
-                        purchase = Purchase(roaster.trim().ifBlank { "Rösterei" }, city, Cities[city], channel, price.replace(',', '.').toDoubleOrNull()?.let { (it * 100).toInt() },
-                            url = shopUrl.trim().takeIf { it.startsWith("https://") || it.startsWith("http://") }),
+                        purchase = purchase,
                         updatedAt = vm.now(),
                     )
                     vm.addBean(bean)
@@ -123,18 +147,50 @@ fun AddBeanScreen(vm: DropsViewModel, nav: NavController) {
                 }
             }
         }, Modifier.fillMaxWidth(), kind = ButtonKind.Ink, height = 56.dp)
-        Text("Etikett-Scan kommt als nächster Schritt (Kamera + Texterkennung auf dem Gerät).", style = DropsType.small, color = c.muted)
+        Text("Nur der Name ist Pflicht. Alles andere kannst du später auf der Bohne ergänzen.", style = DropsType.small, color = c.muted)
     }
 }
 
 @Composable
-private fun FormField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier.fillMaxWidth(), type: KeyboardType = KeyboardType.Text) {
+private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Eyebrow(title)
+        content()
+    }
+}
+
+@Composable
+private fun FormCard(content: @Composable ColumnScope.() -> Unit) {
+    val c = Drops.colors
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).border(1.dp, c.line, RoundedCornerShape(18.dp)).background(c.line),
+        verticalArrangement = Arrangement.spacedBy(1.dp), content = content,
+    )
+}
+
+/** Side-by-side fields share one height, so the divider background never shows below the shorter cell. */
+@Composable
+private fun FieldRow(content: @Composable RowScope.() -> Unit) {
+    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(1.dp), content = content)
+}
+
+@Composable
+private fun FormField(
+    label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier.fillMaxWidth(),
+    type: KeyboardType = KeyboardType.Text, placeholder: String? = null,
+) {
     val c = Drops.colors
     Column(modifier.background(c.surface).padding(horizontal = 14.dp, vertical = 10.dp)) {
         Text(label, style = DropsType.caption, color = c.muted)
         BasicTextField(
             value, onChange, singleLine = true, textStyle = DropsType.body.copy(color = c.ink), cursorBrush = SolidColor(c.accent),
             keyboardOptions = KeyboardOptions(keyboardType = type), modifier = Modifier.fillMaxWidth().padding(top = 2.dp).a11y(label),
+            decorationBox = { field ->
+                Box {
+                    if (value.isEmpty() && placeholder != null) Text(placeholder, style = DropsType.body, color = c.muted.copy(alpha = 0.6f), maxLines = 1)
+                    field()
+                }
+            },
         )
     }
 }

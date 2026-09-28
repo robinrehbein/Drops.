@@ -199,7 +199,7 @@ private fun HopperCard(bean: Bean, recipe: Recipe?, today: kotlinx.datetime.Loca
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(bean.name, style = DropsType.title.copy(fontSize = 34.sp), color = c.heroInk)
-            Text("${bean.roaster} · ${bean.country} · ${processLabel(bean.process)}", style = DropsType.small.copy(fontSize = 14.sp), color = c.heroMuted)
+            Text(listOf(bean.roaster, bean.country, processLabel(bean.process)).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.small.copy(fontSize = 14.sp), color = c.heroMuted)
         }
         bean.roastDate?.let { roast ->
             val f = RoastFreshness.evaluate(roast, today)
