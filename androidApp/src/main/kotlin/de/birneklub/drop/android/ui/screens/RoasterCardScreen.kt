@@ -1,5 +1,7 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.android.ui.rememberLargeFont
+import de.birneklub.drop.android.ui.Space
 import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,27 +34,32 @@ fun RoasterCardScreen(vm: DropsViewModel, nav: NavController, payload: String) {
         TextAction("‹ Zurück", { if (!nav.popBackStack()) nav.navigate(Routes.TODAY) })
         if (card == null) {
             ScreenTitle("Karte ungültig")
-            Text("Dieser Code ist beschädigt oder unvollständig. Frag die Rösterei nach einer neuen Karte.", style = DropsType.body, color = c.muted)
+            Text("Dieser Code ist beschädigt oder unvollständig. Frag die Rösterei nach einer neuen Karte oder leg die Bohne selbst an.", style = DropsType.body, color = c.muted)
+            PillButton("Bohne selbst anlegen", { nav.navigate(Routes.ADD_BEAN) { popUpTo(Routes.ROASTER_CARD) { inclusive = true } } }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
             return@ScreenColumn
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Eyebrow("Startrezept von ${card.roaster}", c.accent)
             ScreenTitle(card.coffee)
-            val origin = listOf(card.country, card.region).filter { it.isNotBlank() }.joinToString(", ")
-            if (origin.isNotBlank() || card.notes.isNotEmpty()) {
-                Text(listOf(origin, card.notes.joinToString(", ")).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.body, color = c.muted)
+            Format.joinOrNull(card.country, card.region, processLabel(card.process), card.notes.joinToString(", "))?.let {
+                Text(it, style = DropsType.body, color = c.muted)
             }
         }
         DropsCard(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Fact("Dosis", Format.grams(card.doseGrams))
-                Fact("Ertrag", Format.grams(card.yieldGrams))
-                Fact("Zeit", Format.secondsRange(card.timeMinSec, card.timeMaxSec))
-                Fact("Temp.", Format.celsius(card.temperatureC))
+            val facts = listOf(
+                "Dosis" to Format.grams(card.doseGrams), "Ertrag" to Format.grams(card.yieldGrams),
+                "Zeit" to Format.secondsRange(card.timeMinSec, card.timeMaxSec), "Brühtemperatur" to Format.celsius(card.temperatureC),
+            )
+            // Two by two (one per line with large text) instead of four squeezed columns.
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                facts.chunked(if (rememberLargeFont()) 1 else 2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) { row.forEach { (k, v) -> Fact(k, v, Modifier.weight(1f)) } }
+                }
+                Fact("Verhältnis", Format.ratio(card.doseGrams, card.yieldGrams))
             }
-            if (card.hint.isNotBlank()) Text(card.hint, style = DropsType.small, color = c.ink, modifier = Modifier.padding(top = 12.dp))
+            if (card.hint.isNotBlank()) Text(card.hint, style = DropsType.small, color = c.ink, modifier = Modifier.padding(top = Space.m))
         }
-        Text("Den Mahlgrad findest du mit deiner Mühle selbst; Drops. hilft dir beim ersten Shot.", style = DropsType.small, color = c.muted)
+        Text("Den Mahlgrad bringt die Karte nicht mit, er hängt von deiner Mühle ab. Drops. startet mit der Espresso-Einstellung deiner Mühle und schlägt nach jedem Shot die nächste vor.", style = DropsType.small, color = c.muted)
         PillButton("Bohne und Rezept übernehmen", {
             val id = vm.addRoasterCard(card)
             nav.navigate(Routes.bean(id)) { popUpTo(Routes.ROASTER_CARD) { inclusive = true } }
@@ -61,8 +68,8 @@ fun RoasterCardScreen(vm: DropsViewModel, nav: NavController, payload: String) {
 }
 
 @Composable
-private fun Fact(label: String, value: String) {
-    Column {
+private fun Fact(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
         Text(label, style = DropsType.caption, color = Drops.colors.muted)
         Text(value, style = DropsType.bodyStrong, color = Drops.colors.ink)
     }

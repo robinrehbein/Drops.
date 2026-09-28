@@ -95,8 +95,8 @@ fun AccountScreen(vm: DropsViewModel, nav: NavController) {
                 DropsCard(Modifier.fillMaxWidth()) {
                     Text("Konto und alle Daten auf dem Server löschen? Die Daten auf diesem Gerät bleiben erhalten.", style = DropsType.body, color = c.ink)
                     Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        PillButton("Abbrechen", { confirm = false }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
-                        PillButton("Löschen", { vm.deleteAccount(); confirm = false }, Modifier.weight(1f), kind = ButtonKind.Ink, height = 44.dp)
+                        PillButton("Abbrechen", { confirm = false }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 48.dp)
+                        PillButton("Löschen", { vm.deleteAccount(); confirm = false }, Modifier.weight(1f), kind = ButtonKind.Ink, height = 48.dp)
                     }
                 }
             }

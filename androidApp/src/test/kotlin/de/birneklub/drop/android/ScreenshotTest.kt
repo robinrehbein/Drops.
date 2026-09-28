@@ -109,5 +109,6 @@ class ScreenshotTest(private val variant: Variant) {
     @Test fun map() = shoot("08_map") { MapScreen(it, rememberNavController()) }
     @Test fun discover() = shoot("09_discover") { MapScreen(it, rememberNavController(), MapMode.DISCOVER) }
     @Test fun account() = shoot("10_account") { AccountScreen(it, rememberNavController()) }
+    @Test fun roasterCardInvalid() = shoot("11b_roaster_card_invalid") { RoasterCardScreen(it, rememberNavController(), "kaputt") }
     @Test fun roasterCard() = shoot("11_roaster_card") { RoasterCardScreen(it, rememberNavController(), card.encode()) }
 }
