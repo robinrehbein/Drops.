@@ -61,7 +61,6 @@ fun DiscoverContent(
     modifier: Modifier = Modifier,
 ) {
     val profile = remember(lib.beans) { Palate.profile(lib.beans) }
-    var saved by rememberSaveable { mutableStateOf(setOf<String>()) }
     val c = Drops.colors
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -101,11 +100,7 @@ fun DiscoverContent(
                             Text(r.name, style = DropsType.headline, color = c.ink)
                             Text(r.notes, style = DropsType.small, color = c.muted)
                             Text(r.reason, style = DropsType.caption, color = c.ink, modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(c.okSoft).padding(horizontal = 10.dp, vertical = 8.dp))
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(r.price, style = DropsType.small.copy(fontFamily = MonoFamily), color = c.ink)
-                                val isSaved = r.id in saved
-                                TextAction(if (isSaved) "Gemerkt ✓" else "Merken", { saved = if (isSaved) saved - r.id else saved + r.id })
-                            }
+                            Text(r.price, style = DropsType.small.copy(fontFamily = MonoFamily), color = c.ink)
                         }
                     }
                 }

@@ -44,9 +44,16 @@ class DataTest {
         repo.seedIfEmpty()
         assertEquals(7, repo.beans.first().size)
         assertEquals(1, repo.beans.first().count { it.inHopper })
+        // The user logged a shot and added a recipe on an example bean, and set up a real grinder.
+        repo.logShot(Shot("mine", "sample-guji", null, fixedNow, 14.0, 18.0, 36.0, 27.0, 93, Taste.BALANCED, fixedNow))
+        repo.saveRecipe(de.birneklub.drop.core.model.Recipe("my-r", "sample-guji", "Mein", 14.0, null, 18.0, 36.0, 25, 30, 93, updatedAt = fixedNow))
+        repo.saveEquipment(de.birneklub.drop.core.model.Equipment("my-grinder", de.birneklub.drop.core.model.EquipmentKind.GRINDER, "Niche", updatedAt = fixedNow))
         repo.removeSampleData()
         assertTrue(repo.beans.first().isEmpty())
-        assertEquals(2, repo.equipment.first().size, "equipment and care plan stay")
+        assertTrue(repo.recipes.first().isEmpty())
+        assertTrue(repo.shots.first().isEmpty(), "no shot is left without its bean")
+        assertEquals(listOf("my-grinder"), repo.equipment.first().map { it.id }, "example devices go, the user's stay")
+        assertTrue(repo.tasks.first().isEmpty())
     }
 
     @Test

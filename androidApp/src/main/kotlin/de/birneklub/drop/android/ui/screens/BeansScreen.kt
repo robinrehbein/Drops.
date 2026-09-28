@@ -1,5 +1,8 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.android.ui.TextAction
+import de.birneklub.drop.android.ui.ButtonKind
+import de.birneklub.drop.android.ui.PillButton
 import de.birneklub.drop.core.format.Format
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -145,7 +148,31 @@ fun BeansScreen(vm: DropsViewModel, nav: NavController) {
                 }
             }
             if (visible.isEmpty() && lib.loaded) {
-                DropsCard(Modifier.fillMaxWidth()) { Text("Keine Bohne passt zu „$query“.", style = DropsType.body, color = c.muted) }
+                DropsCard(Modifier.fillMaxWidth()) {
+                    when {
+                        lib.beans.isEmpty() -> {
+                            Text("Noch keine Bohne", style = DropsType.bodyStrong, color = c.ink)
+                            Text("Leg die Tüte an, die gerade offen ist. Nur der Name ist Pflicht.", style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+                            PillButton("Bohne anlegen", { nav.navigate(Routes.ADD_BEAN) }, Modifier.fillMaxWidth(), kind = ButtonKind.Ink, height = 48.dp)
+                        }
+                        query.isNotBlank() -> {
+                            Text("Keine Bohne passt zu „${query.trim()}“.", style = DropsType.body, color = c.muted)
+                            TextAction("Suche löschen", { query = "" })
+                        }
+                        else -> {
+                            Text(
+                                when (filter) {
+                                    BeanFilter.OPEN -> "Keine offene Tüte. Öffne eine Bohne aus dem Gefrierfach oder leg eine neue an."
+                                    BeanFilter.FROZEN -> "Nichts im Gefrierfach. Auf einer Bohne kannst du Dosen einfrieren."
+                                    BeanFilter.ARCHIVED -> "Noch nichts im Archiv. Aufgebrauchte Bohnen landen hier mit Bewertung."
+                                    BeanFilter.ALL -> "Keine Bohnen."
+                                },
+                                style = DropsType.body, color = c.muted,
+                            )
+                            TextAction("Alle zeigen", { filter = BeanFilter.ALL })
+                        }
+                    }
+                }
             }
         }
 

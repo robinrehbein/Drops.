@@ -105,8 +105,9 @@ fun TodayScreen(vm: DropsViewModel, nav: NavController) {
         } else if (lib.loaded) {
             HeroCard {
                 Eyebrow("Im Trichter", Drops.colors.heroAccent)
-                Text("Keine offene Tüte.", style = DropsType.headline, color = Drops.colors.heroInk)
-                PillButton("Bohne auswählen", { nav.navigate(Routes.BEANS) }, kind = ButtonKind.Hero)
+                Text(if (lib.beans.isEmpty()) "Noch keine Bohne." else "Keine offene Tüte.", style = DropsType.headline, color = Drops.colors.heroInk)
+                if (lib.beans.isEmpty()) PillButton("Bohne anlegen", { nav.navigate(Routes.ADD_BEAN) }, kind = ButtonKind.Hero)
+                else PillButton("Bohne auswählen", { nav.navigate(Routes.BEANS) }, kind = ButtonKind.Hero)
             }
         }
 

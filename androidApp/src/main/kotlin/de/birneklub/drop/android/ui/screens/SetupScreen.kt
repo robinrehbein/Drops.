@@ -1,5 +1,9 @@
 package de.birneklub.drop.android.ui.screens
 
+import de.birneklub.drop.android.ui.ConfirmDialog
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import de.birneklub.drop.core.format.Format
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -157,6 +161,21 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
             val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let(vm::exportBackup) }
             val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::importBackup) }
             val bcImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::importBeanconqueror) }
+            var confirmImport by rememberSaveable { mutableStateOf<String?>(null) }
+            confirmImport?.let { which ->
+                ConfirmDialog(
+                    title = if (which == "bc") "Von Beanconqueror übernehmen?" else "Backup einspielen?",
+                    text = if (which == "bc") "Bohnen und Espresso-Shots aus dem Export kommen zu deinen Daten dazu. Nichts wird gelöscht."
+                    else "Einträge aus der Datei werden übernommen, wenn sie neuer sind als die auf dem Gerät. Neuere Einträge auf dem Gerät bleiben, nichts wird gelöscht.",
+                    confirm = "Datei wählen",
+                    destructive = false,
+                    onConfirm = {
+                        if (which == "bc") bcImporter.launch(arrayOf("application/zip", "application/json", "application/octet-stream"))
+                        else importer.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                    },
+                    onDismiss = { confirmImport = null },
+                )
+            }
             SectionHeader("Daten sichern")
             DropsCard(Modifier.fillMaxWidth()) {
                 Text("Android sichert Drops. automatisch mit deinem Geräte-Backup.", style = DropsType.bodyStrong, color = c.ink)
@@ -167,9 +186,9 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PillButton("Exportieren", { exporter.launch("drops-backup-${vm.now().toString().take(10)}.json") }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
-                PillButton("Einspielen", { importer.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
+                PillButton("Einspielen", { confirmImport = "backup" }, Modifier.weight(1f), kind = ButtonKind.Ghost, height = 44.dp)
             }
-            TextAction("Von Beanconqueror umziehen (Export-ZIP wählen)", { bcImporter.launch(arrayOf("application/zip", "application/json", "application/octet-stream")) })
+            TextAction("Von Beanconqueror umziehen (Export-ZIP wählen)", { confirmImport = "bc" })
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -178,8 +197,19 @@ fun SetupScreen(vm: DropsViewModel, nav: NavController) {
             StatsConsentCard(vm)
         }
 
-        if (lib.beans.any { it.id.startsWith(de.birneklub.drop.data.SampleData.PREFIX) }) {
-            PillButton("Beispielbohnen entfernen", { vm.removeSampleData() }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
+        val samples = de.birneklub.drop.data.SampleData.PREFIX
+        if (lib.beans.any { it.id.startsWith(samples) } || lib.equipment.any { it.id.startsWith(samples) }) {
+            var confirmSamples by rememberSaveable { mutableStateOf(false) }
+            PillButton("Beispieldaten entfernen", { confirmSamples = true }, Modifier.fillMaxWidth(), kind = ButtonKind.Ghost)
+            if (confirmSamples) {
+                ConfirmDialog(
+                    title = "Beispieldaten entfernen?",
+                    text = "Die Beispielbohnen mit Rezepten und Shots, die Beispielmaschine und -mühle mit Zählern und Pflegeplan werden gelöscht. Auch Shots, die du mit Beispielbohnen gespeichert hast. Deine eigenen Bohnen und Geräte bleiben.",
+                    confirm = "Entfernen",
+                    onConfirm = { vm.removeSampleData() },
+                    onDismiss = { confirmSamples = false },
+                )
+            }
         }
         Row(Modifier.align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             TextAction("Impressum", { uri.openUri("https://robinrehbein.de/imprint") }, c.muted)

@@ -391,12 +391,24 @@ class DropsRepository(
         }
     }
 
-    /** Removes the example beans and shots but keeps equipment and the care plan. */
+    /**
+     * Removes everything the example set brought: beans, recipes, shots, the
+     * example machine and grinder with their counters and care plan. Recipes and
+     * shots the user added to an example bean go too, so nothing is left without
+     * its bean. Devices the user set up are kept.
+     */
     suspend fun removeSampleData() = withContext(io) {
         db.transaction {
-            listOf(SyncCollections.BEANS, SyncCollections.RECIPES, SyncCollections.SHOTS).forEach { c ->
-                q.liveIds(c).executeAsList().filter { it.startsWith(SampleData.PREFIX) }.forEach { tombstone(c, it) }
-            }
+            val sampleBeans = q.liveIds(SyncCollections.BEANS).executeAsList().filter { it.startsWith(SampleData.PREFIX) }.toSet()
+            val sampleDevices = q.liveIds(SyncCollections.EQUIPMENT).executeAsList().filter { it.startsWith(SampleData.PREFIX) }.toSet()
+            sampleBeans.forEach { tombstone(SyncCollections.BEANS, it) }
+            allLive(SyncCollections.RECIPES, Recipe.serializer()).filter { it.beanId in sampleBeans || it.id.startsWith(SampleData.PREFIX) }
+                .forEach { tombstone(SyncCollections.RECIPES, it.id) }
+            allLive(SyncCollections.SHOTS, Shot.serializer()).filter { it.beanId in sampleBeans || it.id.startsWith(SampleData.PREFIX) }
+                .forEach { tombstone(SyncCollections.SHOTS, it.id) }
+            sampleDevices.forEach { tombstone(SyncCollections.EQUIPMENT, it) }
+            allLive(SyncCollections.TASKS, MaintenanceTask.serializer()).filter { it.equipmentId in sampleDevices || it.id.startsWith(SampleData.PREFIX) }
+                .forEach { tombstone(SyncCollections.TASKS, it.id) }
         }
     }
 

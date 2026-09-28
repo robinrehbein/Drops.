@@ -6,3 +6,4 @@ gehören. Sie werden hier notiert statt gebaut.
 
 | Was | Warum verschoben |
 | --- | --- |
+| Merkliste für Kaffee-Empfehlungen („Merken“ in Entdecken) | Die Empfehlungen sind noch Beispielinhalte ohne echten Katalog; eine Merkliste ohne Ort, an dem man sie wiederfindet, wäre ein Knopf ohne Funktion. Kommt mit dem echten Katalog. |
