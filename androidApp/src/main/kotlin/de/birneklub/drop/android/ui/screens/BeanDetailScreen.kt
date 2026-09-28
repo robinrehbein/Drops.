@@ -1,5 +1,9 @@
 package de.birneklub.drop.android.ui.screens
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import de.birneklub.drop.android.ui.rememberLargeFont
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.mutableStateOf
 import de.birneklub.drop.android.ui.Space
@@ -86,33 +90,27 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
             // Header
             Column(Modifier.fillMaxWidth().background(c.hero).statusBarsPadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).background(c.heroLine).clickable(role = Role.Button) { nav.popBackStack() }.a11y("Zurück"),
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(DropsIcons.Back, null, tint = c.heroInk, size = 20.dp) }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val (label, color) = when (bean.status) {
-                            BeanStatus.OPEN -> "Offen" to c.statusOpen
-                            BeanStatus.FROZEN -> "Eingefroren" to c.statusFrozen
-                            BeanStatus.ARCHIVED -> "Archiv" to c.statusArchived
-                        }
-                        Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(color).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                            Text(label, style = DropsType.small.copy(fontSize = 13.sp), color = c.heroInk)
-                        }
-                        when {
-                            bean.status == BeanStatus.FROZEN -> PillButton("Dose auftauen", { vm.thawDose(bean) }, kind = ButtonKind.GhostOnHero, height = 40.dp)
-                            !bean.inHopper -> PillButton("In den Trichter", { vm.putInHopper(bean) }, kind = ButtonKind.GhostOnHero, height = 40.dp)
-                        }
-                        Box(
-                            Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).background(c.heroLine).clickable(role = Role.Button) { nav.navigate(Routes.editBean(bean.id)) }.a11y("Bohne bearbeiten"),
-                            contentAlignment = Alignment.Center,
-                        ) { Icon(DropsIcons.Edit, null, tint = c.heroInk, size = 20.dp) }
-                    }
+                    HeaderButton(DropsIcons.Back, "Zurück") { nav.popBackStack() }
+                    HeaderButton(DropsIcons.Edit, "Bohne bearbeiten") { nav.navigate(Routes.editBean(bean.id)) }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Eyebrow("${bean.roaster}${bean.purchase?.city?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}", c.heroAccent)
-                    Text(bean.name, style = DropsType.display.copy(fontSize = 46.sp, lineHeight = 46.sp), color = c.heroInk)
-                    Text(listOf(bean.country, bean.region, bean.altitude).filter { it.isNotBlank() }.joinToString(" · "), style = DropsType.body, color = c.heroMuted)
+                Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+                    Format.joinOrNull(bean.roaster, bean.purchase?.city)?.let { Eyebrow(it, c.heroAccent) }
+                    Text(bean.name, style = DropsType.display.copy(fontSize = 46.sp, lineHeight = 48.sp), color = c.heroInk)
+                    Format.joinOrNull(bean.country, bean.region, bean.altitude)?.let { Text(it, style = DropsType.body, color = c.heroMuted) }
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Space.s), verticalArrangement = Arrangement.spacedBy(Space.s), itemVerticalAlignment = Alignment.CenterVertically) {
+                    val (label, color) = when (bean.status) {
+                        BeanStatus.OPEN -> (if (bean.inHopper) "Offen · im Trichter" else "Offen") to c.statusOpen
+                        BeanStatus.FROZEN -> "Eingefroren · ${bean.frozenDoses} ${if (bean.frozenDoses == 1) "Dose" else "Dosen"}" to c.statusFrozen
+                        BeanStatus.ARCHIVED -> "Archiv" to c.statusArchived
+                    }
+                    Box(Modifier.heightIn(min = 32.dp).clip(RoundedCornerShape(16.dp)).background(color).padding(horizontal = Space.m, vertical = Space.xs), contentAlignment = Alignment.Center) {
+                        Text(label, style = DropsType.small, color = c.heroInk)
+                    }
+                    when {
+                        bean.status == BeanStatus.FROZEN -> PillButton("Dose auftauen", { vm.thawDose(bean) }, kind = ButtonKind.GhostOnHero, height = Space.touch)
+                        !bean.inHopper && bean.status == BeanStatus.OPEN -> PillButton("In den Trichter", { vm.putInHopper(bean) }, kind = ButtonKind.GhostOnHero, height = Space.touch)
+                    }
                 }
                 if (bean.tastingNotes.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -126,9 +124,12 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 FactsGrid(
                     listOf(
-                        "Aufbereitung" to (if (bean.process == Process.OTHER) "–" else processLabel(bean.process)), "Varietät" to bean.variety.ifBlank { "–" }, "Röstgrad" to bean.roastLevel.ifBlank { "–" },
-                        "Geröstet" to Format.date(bean.roastDate),
-                        "Preis" to Format.euros(bean.purchase?.priceCents), "Menge" to Format.grams(bean.weightGrams.toDouble(), 0),
+                        "Aufbereitung" to (if (bean.process == Process.OTHER) Format.MISSING else processLabel(bean.process)),
+                        "Röstgrad" to bean.roastLevel.ifBlank { Format.MISSING },
+                        "Varietät" to bean.variety.ifBlank { Format.MISSING },
+                        "Geröstet am" to Format.date(bean.roastDate),
+                        "Menge" to "${Format.grams(bean.remainingGrams, 0)} von ${Format.grams(bean.weightGrams.toDouble(), 0)}",
+                        "Preis" to Format.euros(bean.purchase?.priceCents),
                     ),
                 )
 
@@ -157,38 +158,44 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
                 else if (shots.size == 1) de.birneklub.drop.android.ui.SectionHeader("1 Shot", "Verlauf", { nav.navigate(Routes.shots(bean.id)) })
 
                 DropsCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column {
-                            Text("Dein Urteil", style = DropsType.small, color = c.muted)
-                            Text(Format.rating(bean.rating), style = DropsType.headline, color = c.ink)
-                        }
-                        Row {
-                            (1..5).forEach { i ->
-                                val filled = (bean.rating ?: 0.0) >= i - 0.5
-                                Box(Modifier.size(40.dp, 44.dp).clickable(role = Role.Button) { vm.rate(bean, i) }.a11y("$i Sterne"), contentAlignment = Alignment.Center) {
-                                    Icon(if (filled) DropsIcons.StarFilled else DropsIcons.Star, null, tint = c.accent, size = 22.dp)
-                                }
+                    Text("Dein Urteil", style = DropsType.small, color = c.muted)
+                    Text(
+                        if (bean.rating == null) "Noch nicht bewertet" else Format.rating(bean.rating),
+                        style = if (bean.rating == null) DropsType.body else DropsType.headline, color = if (bean.rating == null) c.muted else c.ink,
+                    )
+                    Row(Modifier.padding(top = Space.xs)) {
+                        (1..5).forEach { i ->
+                            val filled = (bean.rating ?: 0.0) >= i - 0.5
+                            val half = bean.rating == i - 0.5
+                            Box(
+                                Modifier.size(Space.touch).clickable(role = Role.Button, onClickLabel = "$i von 5 Sternen vergeben") { vm.rate(bean, i) }
+                                    .a11y("$i Sterne${if (filled && !half) ", vergeben" else if (half) ", halb vergeben" else ""}"),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(if (filled) DropsIcons.StarFilled else DropsIcons.Star, null, tint = c.accent, size = 26.dp)
                             }
                         }
                     }
-                    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Wieder kaufen?", style = DropsType.body, color = c.ink)
-                        Segmented(listOf("Ja", "Nein"), when (bean.wouldRebuy) { true -> 0; false -> 1; null -> -1 }, { vm.setRebuy(bean, it == 0) }, Modifier.size(180.dp, 52.dp))
-                    }
+                    Text("Nochmal tippen für einen halben Stern.", style = DropsType.caption, color = c.muted)
+                    Text("Wieder kaufen?", style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = Space.l, bottom = Space.s))
+                    Segmented(listOf("Ja", "Nein"), when (bean.wouldRebuy) { true -> 0; false -> 1; null -> -1 }, { vm.setRebuy(bean, it == 0) }, Modifier.fillMaxWidth())
                     if (bean.rating != null || bean.wouldRebuy != null) {
                         TextAction("Urteil zurücksetzen", { vm.resetVerdict(bean) }, c.muted)
                     }
                     bean.purchase?.let { p ->
-                        Text("Gekauft bei ${p.shopName}${if (p.city.isNotBlank()) ", ${p.city}" else ""}", style = DropsType.small, color = c.muted)
+                        Text(
+                            "Gekauft bei " + listOf(p.shopName, p.city).filter { it.isNotBlank() }.joinToString(", ") + (p.purchasedOn?.let { " am ${Format.date(it)}" } ?: ""),
+                            style = DropsType.small, color = c.muted, modifier = Modifier.padding(top = Space.s),
+                        )
                     }
                     if (bean.wouldRebuy != false) {
                         val uri = LocalUriHandler.current
                         val link = vm.reorderLink(bean)
                         if (link.sponsored) Row(Modifier.padding(top = 12.dp)) { de.birneklub.drop.android.ui.AdLabel() }
                         PillButton(
-                            if (bean.purchase?.url != null) "Beim Röster nachkaufen" else "Nachkaufen suchen",
+                            if (bean.purchase?.url != null) "Im Shop nachkaufen" else "Online suchen",
                             { uri.openUri(vm.open(link, reorder = true)) },
-                            Modifier.fillMaxWidth().padding(top = 12.dp), kind = ButtonKind.Ghost, height = 44.dp, icon = DropsIcons.Cart,
+                            Modifier.fillMaxWidth().padding(top = Space.m), kind = ButtonKind.Ghost, height = Space.touch, icon = DropsIcons.Cart,
                         )
                     }
                 }
@@ -203,24 +210,27 @@ fun BeanDetailScreen(vm: DropsViewModel, nav: NavController, beanId: String) {
         if (bean.status == BeanStatus.OPEN) {
             Column(Modifier.fillMaxWidth().background(c.paper).navigationBarsPadding()) {
                 de.birneklub.drop.android.ui.Divider()
-                PillButton("Mit diesem Rezept brühen", { nav.navigate(Routes.shot(bean.id)) }, Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), height = 56.dp)
+                PillButton(if (recipe != null) "Mit „${recipe.name}“ brühen" else "Shot brühen", { nav.navigate(Routes.shot(bean.id)) }, Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), height = 56.dp)
             }
         }
     }
 }
 
+/** Label/value pairs in two columns (one with large text), rows of equal height. */
 @Composable
 private fun FactsGrid(facts: List<Pair<String, String>>) {
     val c = Drops.colors
+    val columns = if (rememberLargeFont()) 1 else 2
     Column(Modifier.clip(RoundedCornerShape(16.dp)).border(1.dp, c.line, RoundedCornerShape(16.dp)).background(c.line), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        facts.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+        facts.chunked(columns).forEach { row ->
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
                 row.forEach { (k, v) ->
-                    Column(Modifier.weight(1f).background(c.surface).padding(12.dp)) {
-                        Text(k, style = DropsType.caption.copy(fontSize = 11.sp), color = c.muted)
-                        Text(v, style = DropsType.bodyStrong.copy(fontSize = 14.sp), color = c.ink, maxLines = 1)
+                    Column(Modifier.weight(1f).fillMaxHeight().background(c.surface).padding(Space.m)) {
+                        Text(k, style = DropsType.caption, color = c.muted)
+                        Text(v, style = DropsType.bodyStrong.copy(fontSize = 14.sp), color = c.ink)
                     }
                 }
+                if (row.size < columns) Box(Modifier.weight(1f).fillMaxHeight().background(c.surface))
             }
         }
     }
@@ -229,34 +239,50 @@ private fun FactsGrid(facts: List<Pair<String, String>>) {
 @Composable
 private fun RecipeCard(r: Recipe) {
     val c = Drops.colors
+    val columns = if (rememberLargeFont()) 1 else 2
     DropsCard(Modifier.fillMaxWidth(), padding = PaddingValues(0.dp)) {
         val cells = listOf(
-            Triple("Mahlgrad", Format.grind(r.grindSetting), true), Triple("RPM", Format.integer(r.rpm), false),
-            Triple("Dosis → Ertrag", Format.doseToYield(r.doseGrams, r.yieldGrams), false), Triple("Zeit", Format.secondsRange(r.targetTimeMinSec, r.targetTimeMaxSec), false),
-            Triple("Brühtemperatur", Format.celsius(r.temperatureC), false), Triple("Pre-Infusion", r.preinfusion.ifBlank { "–" }, false),
+            Triple("Mahlgrad", if (r.grindSetting > 0) Format.grind(r.grindSetting) else "noch offen", true),
+            Triple("Drehzahl", r.rpm?.let { "${Format.integer(it)}\u00A0U/min" } ?: Format.MISSING, false),
+            Triple("Dosis → Ertrag", Format.doseToYield(r.doseGrams, r.yieldGrams), false),
+            Triple("Zeit", Format.secondsRange(r.targetTimeMinSec, r.targetTimeMaxSec), false),
+            Triple("Brühtemperatur", Format.celsius(r.temperatureC), false),
+            Triple("Vorbrühen", r.preinfusion.ifBlank { Format.MISSING }, false),
         )
-        cells.chunked(2).forEach { row ->
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                row.forEach { (k, v, accent) ->
-                    Column(Modifier.weight(1f)) {
-                        Text(k, style = DropsType.caption, color = c.muted)
-                        Text(v, style = DropsType.numberLarge.copy(fontSize = 20.sp), color = if (accent) c.accent else c.ink)
+        Column(Modifier.padding(vertical = Space.s)) {
+            cells.chunked(columns).forEach { row ->
+                Row(Modifier.padding(horizontal = Space.l, vertical = Space.s), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
+                    row.forEach { (k, v, accent) ->
+                        Column(Modifier.weight(1f)) {
+                            Text(k, style = DropsType.caption, color = c.muted)
+                            Text(v, style = DropsType.bodyStrong.copy(fontSize = 18.sp), color = if (accent) c.accent else c.ink)
+                        }
                     }
                 }
             }
         }
         de.birneklub.drop.android.ui.Divider()
         Text(
-            Format.join(r.equipmentNotes, "Verhältnis ${Format.ratio(r.doseGrams, r.yieldGrams)}"),
-            style = DropsType.small, color = c.muted, modifier = Modifier.padding(16.dp),
+            Format.join("Verhältnis ${Format.ratio(r.doseGrams, r.yieldGrams)}", r.equipmentNotes),
+            style = DropsType.small, color = c.muted, modifier = Modifier.padding(Space.l),
         )
     }
 }
 
 @Composable
+private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    val c = Drops.colors
+    Box(
+        Modifier.size(Space.touch).clip(RoundedCornerShape(24.dp)).background(c.heroLine).clickable(role = Role.Button, onClick = onClick).a11y(label),
+        contentAlignment = Alignment.Center,
+    ) { Icon(icon, null, tint = c.heroInk, size = 20.dp) }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun DialInChart(shots: List<Shot>, onHistory: () -> Unit) {
     val c = Drops.colors
-    val colors = listOf(c.accent, c.heroAccent, c.ok, c.muted, c.ink)
+    val colors = (0..4).map { tasteColor(it) }
     val grinds = shots.map { it.grindSetting }
     val min = (grinds.min() * 2).let { kotlin.math.floor(it) / 2 } - 0.5
     val max = (grinds.max() * 2).let { kotlin.math.ceil(it) / 2 } + 0.5
@@ -281,7 +307,7 @@ private fun DialInChart(shots: List<Shot>, onHistory: () -> Unit) {
                     }
                 }
             }
-            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            FlowRow(Modifier.padding(top = Space.s), horizontalArrangement = Arrangement.spacedBy(Space.l), verticalArrangement = Arrangement.spacedBy(Space.xs)) {
                 shots.map { it.taste.ordinal }.distinct().sorted().forEach { t ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(colors[t]))
